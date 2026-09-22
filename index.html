@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Check Key - The World of Grammar and Vocabulary</title>
+
+<!-- TailwindCSS qua CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Supabase JS SDK v2 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Font: Inter làm webfont dự phòng cho Calibri/CF Asty (2 font này không có sẵn trên Mac/Linux) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  /* ==============================================================
+     HỆ MÀU THƯƠNG HIỆU MM PUBLICATIONS
+     ==============================================================
+     Lưu ý: yêu cầu ghi "Đỏ #FF3333 (hoặc RGB 230,0,0)" — hai giá trị này
+     thực tế là 2 màu khác nhau (#E60000 đậm hơn #FF3333). Tôi dùng:
+       --mm-red       #FF3333  -> màu chính (nút, badge, điểm nhấn)
+       --mm-red-dark  #E60000  -> trạng thái hover (đậm hơn nhẹ)
+     Nếu bạn muốn màu chính là #E60000, chỉ cần đổi 2 dòng dưới đây.
+  */
+  :root{
+    --mm-red:       #FF3333;   /* Primary / Accent */
+    --mm-red-dark:  #E60000;   /* Hover / nhấn mạnh */
+    --mm-red-deep:  #663300;   /* Điểm cuối gradient banner */
+    --mm-red-soft:  #FFEBEB;   /* Nền nhạt cho badge */
+    --text-dark:    #333333;   /* Văn bản chính */
+    --text-muted:   #6E6E6E;   /* Văn bản phụ */
+    --bg-page:      #EAEAEA;   /* Nền trang */
+    --card:         #FFFFFF;   /* Nền thẻ */
+    --border:       #DCDCDC;   /* Viền mảnh */
+    --lock:         #9A9A9A;   /* Trạng thái khoá (xám trung tính) */
+    --radius:       10px;      /* Bo góc chuẩn 8-12px */
+    --shadow-soft:  0 1px 2px rgba(51,51,51,.06), 0 4px 12px rgba(51,51,51,.06);
+    --shadow-hover: 0 2px 4px rgba(51,51,51,.08), 0 10px 24px rgba(51,51,51,.10);
+  }
+
+  *{ -webkit-user-select:none; user-select:none; }
+  input, textarea{ -webkit-user-select:text; user-select:text; }
+
+  body{
+    background:var(--bg-page);
+    color:var(--text-dark);
+    /* Ưu tiên font thương hiệu, sau đó tới webfont dự phòng.
+       !important: Tailwind CDN đặt font-family riêng lên <html> trong phần
+       Preflight của nó; khoá cứng ở đây để body luôn giữ đúng font thương hiệu. */
+    font-family:'Calibri','CF Asty Std','Inter','Roboto',system-ui,-apple-system,sans-serif !important;
+  }
+  .font-display{
+    font-family:'Calibri','CF Asty Std','Inter','Roboto',system-ui,sans-serif !important;
+    font-weight:700 !important;
+    letter-spacing:-.01em;
+  }
+
+  /* ---------- LOGO: giữ đúng tỷ lệ gốc 539x198 = 2.72:1 ---------- */
+  .mm-logo{
+    height:40px;              /* Desktop */
+    width:auto;
+    aspect-ratio:539 / 198;   /* Khoá tỷ lệ, không bao giờ bị méo */
+    object-fit:contain;
+    display:block;
+  }
+  /* Area of Isolation: khoảng trống an toàn quanh logo,
+     lấy bằng ~1/2 chiều cao logo ở mỗi cạnh theo chuẩn nhận diện */
+  .mm-logo-wrap{ padding:20px; margin:-20px; }
+  @media (max-width:640px){
+    /* Mobile: không bao giờ nhỏ hơn 26px (~7mm) để tránh vỡ nét */
+    .mm-logo{ height:28px; min-height:26px; }
+    .mm-logo-wrap{ padding:14px; margin:-14px; }
+  }
+
+  /* ---------- THẺ LEVEL ---------- */
+  .level-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow-soft);
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .level-card:hover{
+    transform:translateY(-2px);
+    box-shadow:var(--shadow-hover);
+    border-color:var(--mm-red);   /* Viền đỏ thương hiệu khi hover */
+  }
+  .level-card.locked{ opacity:.85; }
+  .level-card.locked:hover{ border-color:var(--mm-red); }
+
+  /* ---------- THANH TIẾN ĐỘ ---------- */
+  /* Đặt sẵn chiều cao ở đây để thanh tiến độ vẫn hiện dù Tailwind chưa tải xong */
+  .progress-track{ background:#DEDEDE; height:8px; border-radius:999px; overflow:hidden; }
+  .progress-fill{ background:linear-gradient(90deg,var(--mm-red),var(--mm-red-dark)); }
+
+  /* ---------- DÒNG MODULE ---------- */
+  .module-row{
+    border:1px solid var(--border);
+    border-radius:8px;
+    transition:border-color .15s ease;
+  }
+  .module-row.unlocked{ background:var(--card); }
+  .module-row.unlocked:hover{ border-color:var(--mm-red); }
+  .module-row.locked{ background:#F4F4F4; color:var(--lock); }
+
+  /* ---------- NÚT BẤM ---------- */
+  .btn-primary{
+    background:var(--mm-red); color:#fff;
+    font-weight:700 !important;   /* khoá đậm, không để class "font-medium" của Tailwind đè */
+    transition:background .15s ease;
+  }
+  .btn-primary:hover{ background:var(--mm-red-dark); }
+  .btn-outline{
+    background:#fff; color:var(--text-dark);
+    border:1px solid var(--border);
+    font-weight:700 !important;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .btn-outline:hover{ border-color:var(--mm-red); color:var(--mm-red); }
+
+  /* ---------- BANNER GRADIENT THƯƠNG HIỆU ---------- */
+  .mm-banner{ background:linear-gradient(135deg,var(--mm-red) 0%,var(--mm-red-deep) 100%); }
+
+  /* Popup (Tầng 3 nhập mã & cửa sổ xem đáp án).
+     Tự định vị bằng CSS riêng để vẫn nổi đúng giữa màn hình
+     kể cả khi Tailwind CDN tải chậm hoặc bị chặn. */
+  .modal-backdrop{
+    background:rgba(51,51,51,.55);
+    position:fixed;
+    inset:0;
+    z-index:40;
+    align-items:center;
+    justify-content:center;
+    padding:0 1rem;
+  }
+  /* JS gỡ class "hidden" và thêm class "flex" khi mở popup */
+  .modal-backdrop.flex{ display:flex !important; }
+  .card-surface{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow-soft);
+  }
+
+  /* Watermark động phủ lên vùng xem đáp án */
+  #watermark-layer{
+    position:absolute; inset:0; pointer-events:none;
+    display:flex; flex-wrap:wrap; align-content:space-around; justify-content:space-around;
+    overflow:hidden; opacity:.13;
+  }
+  #watermark-layer span{
+    transform:rotate(-24deg);
+    font-size:13px; font-weight:600; color:var(--text-dark);
+    white-space:nowrap; margin:18px;
+  }
+
+  input:focus, textarea:focus, select:focus{
+    outline:none;
+    border-color:var(--mm-red);
+    box-shadow:0 0 0 3px rgba(255,51,51,.12);
+  }
+
+
+  /* ============ TYPOGRAPHY: TĂNG CỠ CHỮ CƠ BẢN ============
+     Tailwind tính mọi cỡ chữ theo rem, nên chỉ cần tăng font-size gốc của
+     thẻ <html> là toàn bộ giao diện to lên đồng đều (16px -> 17px, +1px).
+     Muốn to thêm nữa, đổi 17px thành 18px. */
+  /* !important: khoá cứng cỡ chữ gốc, không để Tailwind CDN (nạp bất đồng bộ,
+     cùng độ ưu tiên CSS) ghi đè làm chữ co nhỏ lại khi tải xong sau. */
+  html{ font-size:17px !important; }
+
+  /* Tên nền tảng ở Header: to hơn 20% so với cỡ chữ xung quanh + in đậm */
+  .brand-title{
+    font-size:1.2em !important;      /* +20% */
+    font-weight:700 !important;
+    line-height:1.25;
+    letter-spacing:-.01em;
+  }
+
+  /* Tiêu đề trang (h1) to & đậm rõ nét */
+  .page-title{
+    font-size:1.9rem !important;
+    font-weight:700 !important;
+    line-height:1.2;
+    letter-spacing:-.02em;
+  }
+
+  /* Tên Level (A1.1, A1.2...) to & đậm rõ nét */
+  .level-name{
+    font-size:1.45rem !important;
+    font-weight:700 !important;
+    line-height:1.2;
+    letter-spacing:-.01em;
+  }
+  .level-sub{
+    font-size:.82rem;
+    font-weight:500;
+    color:var(--text-muted);
+  }
+
+  /* ============ BONG BÓNG ĐẦU SÁCH (SERIES CARD) ============
+     Thẻ ngang: ảnh bìa bên trái, thông tin bên phải.
+     Thiết kế mô-đun: thêm 1 phần tử vào mảng SERIES là tự sinh thêm thẻ. */
+  /* Tự định nghĩa .hidden thay vì trông chờ Tailwind CDN.
+     Nếu CDN chậm/bị chặn, các màn hình sẽ không bị hiện chồng lên nhau. */
+  .hidden{ display:none !important; }
+
+  .series-card{
+    display:flex;            /* bố cục ngang: bìa trái - nội dung phải */
+    align-items:stretch;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    box-shadow:var(--shadow-soft);
+    overflow:hidden;
+    cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .series-card:hover{
+    transform:translateY(-3px);
+    box-shadow:var(--shadow-hover);
+    border-color:var(--mm-red);
+  }
+  /* Ảnh bìa: khung cố định tỷ lệ 3:4, ảnh luôn vừa khung, không méo */
+  .series-cover{
+    width:132px;
+    aspect-ratio:3 / 4;
+    /* contain: hiện TRỌN VẸN bìa sách, không cắt mất chữ trên bìa. */
+    object-fit:contain;
+    background:#F7F7F7;
+    display:block;
+  }
+  /* Khung bọc ảnh bìa: tạo overlay tối + chữ "SEE MORE" khi hover.
+     Bọc riêng ảnh (thay vì để nguyên <img>) để overlay chỉ phủ đúng vùng ảnh. */
+  .cover-wrap{
+    position:relative;
+    width:132px;
+    aspect-ratio:3 / 4;
+    align-self:center;
+    margin:16px 0 16px 16px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    overflow:hidden;
+    flex-shrink:0;
+    cursor:pointer;
+  }
+  .cover-overlay{
+    position:absolute; inset:0;
+    background:rgba(20,20,20,0);      /* trong suốt khi bình thường */
+    display:flex;
+    align-items:flex-end;
+    justify-content:flex-end;
+    padding:8px;
+    opacity:0;
+    transition:background .18s ease, opacity .18s ease;
+  }
+  .cover-wrap:hover .cover-overlay{
+    background:rgba(20,20,20,.45);    /* tối lại nhẹ khi hover */
+    opacity:1;
+  }
+  .cover-overlay span{
+    color:#fff;
+    font-size:.68rem;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  @media (max-width:640px){
+    .cover-wrap{ width:96px; margin:12px 0 12px 12px; }
+    .page-title{ font-size:1.6rem; }
+    .level-name{ font-size:1.3rem; }
+  }
+  /* Cột nội dung bên phải của bong bóng đầu sách */
+  .series-body{
+    flex:1 1 auto;
+    min-width:0;
+    padding:1.15rem 1.35rem;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+  .series-meta{
+    display:flex;
+    align-items:center;
+    gap:.75rem;
+    flex-wrap:wrap;
+  }
+  .series-title{
+    font-size:1.35rem !important;
+    font-weight:700 !important;
+    line-height:1.25;
+    letter-spacing:-.01em;
+  }
+  /* Mô tả ngắn dưới tên bộ sách: xám đậm, tương phản tốt trên nền trắng */
+  .series-desc{
+    font-size:.92rem;
+    font-weight:400;
+    color:var(--text-dark);
+    line-height:1.55;
+  }
+  /* Dãy mã cấp độ (A1.1 | A1.2 | ...) - mỗi mã bấm được, ngăn bởi gạch đỏ */
+  .series-level-row{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    row-gap:.35rem;
+  }
+  .series-level-item{
+    font-size:.9rem !important;
+    font-weight:800 !important;   /* ExtraBold để nổi rõ trên nền trắng */
+    color:var(--text-dark);
+    padding:0 .5rem;
+    line-height:1;
+    transition:color .15s ease;
+  }
+  .series-level-item:first-child{ padding-left:0; }
+  .series-level-item:hover{ color:var(--mm-red); text-decoration:underline; }
+  .series-level-sep{
+    color:var(--mm-red);
+    font-weight:700;
+    line-height:1;
+  }
+  /* Nhãn BRITISH EDITION */
+  .edition-badge{
+    display:inline-block;
+    background:var(--mm-red);
+    color:#fff;
+    font-size:.68rem;
+    font-weight:700;
+    letter-spacing:.09em;
+    padding:3px 9px;
+    border-radius:4px;
+    text-transform:uppercase;
+  }
+  /* Thẻ đếm số Level đã kích hoạt trong bộ sách */
+  .series-stat{
+    font-size:.78rem;
+    font-weight:600;
+    color:var(--mm-red-dark);
+    background:var(--mm-red-soft);
+    padding:3px 9px;
+    border-radius:999px;
+    display:inline-block;
+  }
+  /* Nút quay lại dùng chung cho các tầng */
+  .btn-back{
+    font-size:.88rem;
+    font-weight:600;
+    color:var(--text-muted);
+    transition:color .15s ease;
+  }
+  .btn-back:hover{ color:var(--mm-red); }
+
+  ::selection{ background:transparent; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ================= HEADER ================= -->
+<header class="bg-white border-b border-[var(--border)]">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center justify-between gap-4">
+
+    <!-- LOGO NẰM NGANG MM PUBLICATIONS
+         Thay file thật vào: images/logo-mm.png (tỷ lệ gốc 539x198)
+         .mm-logo-wrap tạo khoảng cách an toàn (Area of Isolation) quanh logo -->
+    <div class="flex items-center gap-4 min-w-0">
+      <div class="mm-logo-wrap shrink-0">
+        <img src="images/logo-mm.png" alt="MM Publications" class="mm-logo" />
+      </div>
+      <!-- Vạch ngăn + tên sản phẩm, ẩn trên màn hình rất nhỏ để logo luôn đủ lớn -->
+      <div class="hidden sm:block h-8 w-px bg-[var(--border)] shrink-0"></div>
+      <div class="min-w-0 hidden sm:block">
+        <p class="font-display brand-title truncate">The World of Grammar &amp; Vocabulary</p>
+        <p class="text-xs text-[var(--text-muted)]">Hệ thống tra cứu đáp án chính hãng</p>
+      </div>
+    </div>
+
+    <div id="user-box" class="hidden items-center gap-3 text-sm shrink-0">
+      <span id="user-email" class="text-[var(--text-muted)] hidden sm:inline"></span>
+      <button id="btn-logout" class="btn-outline px-3 py-1.5 rounded-md">Đăng xuất</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-5 py-8">
+
+  <!-- ================= MÀN HÌNH ĐĂNG NHẬP / ĐĂNG KÝ ================= -->
+  <section id="auth-screen" class="max-w-md mx-auto mt-8">
+    <div class="card-surface p-6">
+      <div class="flex mb-5 text-sm font-medium rounded-lg overflow-hidden border border-[var(--border)]">
+        <button id="tab-login" class="flex-1 py-2 bg-[var(--mm-red)] text-white">Đăng nhập</button>
+        <button id="tab-register" class="flex-1 py-2 bg-white">Đăng ký</button>
+      </div>
+
+      <div id="form-login" class="space-y-3">
+        <input id="login-email" type="email" placeholder="Email" class="w-full border border-[var(--border)] rounded-md px-3 py-2 text-sm" />
+        <input id="login-password" type="password" placeholder="Mật khẩu" class="w-full border border-[var(--border)] rounded-md px-3 py-2 text-sm" />
+        <button id="btn-login" class="w-full btn-primary rounded-md py-2 text-sm font-medium">Đăng nhập</button>
+        <p id="login-error" class="text-sm text-[var(--mm-red-dark)]"></p>
+      </div>
+
+      <div id="form-register" class="space-y-3 hidden">
+        <input id="reg-email" type="email" placeholder="Email" class="w-full border border-[var(--border)] rounded-md px-3 py-2 text-sm" />
+        <input id="reg-password" type="password" placeholder="Mật khẩu (tối thiểu 6 ký tự)" class="w-full border border-[var(--border)] rounded-md px-3 py-2 text-sm" />
+        <button id="btn-register" class="w-full btn-primary rounded-md py-2 text-sm font-medium">Tạo tài khoản</button>
+        <p id="register-error" class="text-sm text-[var(--mm-red-dark)]"></p>
+        <p id="register-success" class="text-sm text-[var(--mm-red)]"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MÀN HÌNH DANH SÁCH 7 LEVEL ================= -->
+  <!-- ============ TẦNG 1: BONG BÓNG ĐẦU SÁCH (SERIES) ============ -->
+  <section id="series-screen" class="hidden">
+    <h1 class="font-display page-title mb-1">Chọn bộ giáo trình</h1>
+    <p class="text-sm text-[var(--text-muted)] mb-6">Nhấn vào một bộ sách để xem các cấp độ bên trong.</p>
+    <!-- Lưới này được sinh tự động từ mảng SERIES trong phần cấu hình JS -->
+    <div id="series-grid" class="grid grid-cols-1 gap-4"></div>
+  </section>
+
+  <!-- ============ TẦNG 2: DANH SÁCH LEVEL CỦA BỘ SÁCH ============ -->
+  <section id="dashboard-screen" class="hidden">
+    <button id="btn-back-series" class="btn-back mb-4">&larr; Quay lại danh sách bộ sách</button>
+    <h1 id="dashboard-title" class="font-display page-title mb-1">Chọn cấp độ (Level)</h1>
+    <p id="dashboard-subtitle" class="text-sm text-[var(--text-muted)] mb-6">Nhấn vào 1 Level để xem tiến độ hoặc nhập mã kích hoạt.</p>
+    <div id="level-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+  </section>
+
+  <!-- ================= MÀN HÌNH DANH SÁCH 10 MODULE ================= -->
+  <section id="modules-screen" class="hidden">
+    <button id="btn-back-dashboard" class="btn-back mb-4">&larr; Quay lại danh sách Level</button>
+    <h1 id="modules-title" class="font-display page-title mb-1"></h1>
+    <p id="modules-subtitle" class="text-sm text-[var(--text-muted)] mb-5"></p>
+
+    <div class="mb-6">
+      <div class="flex justify-between text-xs text-[var(--text-muted)] mb-1">
+        <span>Tiến độ hoàn thành</span>
+        <span id="modules-percent">0%</span>
+      </div>
+      <div class="progress-track h-2.5 rounded-full overflow-hidden">
+        <div id="modules-progress-fill" class="progress-fill h-full" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div id="module-list" class="space-y-2"></div>
+  </section>
+
+</main>
+
+<!-- ================= POPUP NHẬP MÃ KÍCH HOẠT ================= -->
+<div id="key-modal" class="hidden fixed inset-0 modal-backdrop items-center justify-center px-4 z-40">
+  <div class="card-surface w-full max-w-sm p-6">
+    <p class="font-display text-lg font-bold mb-1">Kích hoạt Level <span id="key-modal-level"></span></p>
+    <p class="text-sm text-[var(--text-muted)] mb-4">Nhập mã code trên thẻ cào / hóa đơn của bạn.</p>
+    <input id="key-input" type="text" placeholder="VD: A11-XXXX-XXXX" class="w-full border border-[var(--border)] rounded-md px-3 py-2 text-sm uppercase tracking-wide" />
+    <p id="key-error" class="text-sm text-[var(--mm-red-dark)] mt-2"></p>
+    <div class="flex gap-2 mt-4">
+      <button id="btn-cancel-key" class="flex-1 rounded-md py-2 text-sm border border-[var(--border)]">Hủy</button>
+      <button id="btn-submit-key" class="flex-1 btn-primary rounded-md py-2 text-sm font-medium">Kích hoạt</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL XEM ĐÁP ÁN (có watermark) ================= -->
+<div id="viewer-modal" class="hidden fixed inset-0 modal-backdrop items-center justify-center px-4 z-40">
+  <div class="card-surface w-full max-w-2xl max-h-[85vh] flex flex-col relative overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
+      <p id="viewer-title" class="font-display font-bold"></p>
+      <button id="btn-close-viewer" class="text-[var(--text-muted)] hover:text-[var(--mm-red)]">✕ Đóng</button>
+    </div>
+    <div class="relative flex-1 overflow-y-auto">
+      <div id="watermark-layer"></div>
+      <div id="viewer-content" class="relative p-5 text-sm leading-relaxed"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TOAST THÔNG BÁO CHUNG ================= -->
+<div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 bg-[var(--mm-red)] text-white text-sm px-4 py-2 rounded-md z-50"></div>
+
+<script>
+/* ===== 1. CẤU HÌNH & KẾT NỐI SUPABASE ===== */
+/* ==================================================================
+   BƯỚC DUY NHẤT BẠN CẦN SỬA: dán 2 giá trị dưới đây.
+   Lấy tại: Supabase Dashboard > Project Settings > API
+     - Project URL      -> SUPABASE_URL
+     - anon public key  -> SUPABASE_ANON_KEY
+   (anon key là key công khai, an toàn để đặt trong file HTML;
+    bảo mật thật nằm ở RLS Policy đã cấu hình trong schema.sql)
+   ================================================================== */
+const SUPABASE_URL      = "https://fjznnrzbhymzdhrfinbz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqem5ucnpiaHltemRocmZpbmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MTIxMDAsImV4cCI6MjEwNDA4ODEwMH0.R_PPSk3sCQ4lteW6CugKxU0GdqwDRPjfyRMfFCJFVrM";
+
+/* ================== KHÔNG CẦN SỬA TỪ ĐÂY TRỞ XUỐNG ================== */
+
+// Danh sách 7 Level cố định theo bộ giáo trình.
+// "code" là giá trị lưu trong database (không dấu, không ký tự đặc biệt).
+// "label" là chữ hiển thị cho người dùng.
+const LEVELS = [
+  { code: "A1_1",    label: "A1.1",  subtitle: "Beginners" },
+  { code: "A1_2",    label: "A1.2",  subtitle: "Elementary" },
+  { code: "A2",      label: "A2",    subtitle: "Pre-Intermediate" },
+  { code: "B1",      label: "B1",    subtitle: "Intermediate" },
+  { code: "B1_PLUS", label: "B1+",   subtitle: "Upper Intermediate" },
+  { code: "B2",      label: "B2",    subtitle: "Upper-Intermediate+" },
+  { code: "C1C2",    label: "C1/C2", subtitle: "Advanced" },
+];
+
+
+/* ==================================================================
+   CẤU HÌNH BONG BÓNG ĐẦU SÁCH (SERIES) - THIẾT KẾ MÔ-ĐUN
+   ------------------------------------------------------------------
+   Muốn thêm bộ sách mới (Smart, Use of English...), chỉ cần:
+     BƯỚC 1: thêm các Level mới vào mảng LEVELS ở trên (nếu chưa có).
+     BƯỚC 2: thêm 1 object vào mảng SERIES dưới đây.
+   Giao diện sẽ tự sinh thêm bong bóng, không phải sửa HTML/CSS gì cả.
+
+   Ý nghĩa các trường:
+     id        : mã định danh nội bộ, không trùng nhau
+     title     : tên bộ sách hiển thị
+     edition   : nhãn đỏ nhỏ (để rỗng "" nếu không muốn hiện)
+     desc      : mô tả ngắn 1-2 dòng
+     cover     : đường dẫn ảnh bìa (tỷ lệ đẹp nhất là 3:4)
+     levelCodes: danh sách mã Level thuộc bộ sách này, đúng theo LEVELS
+   ================================================================== */
+const SERIES = [
+  {
+    id: "twgv",
+    title: "The World of Grammar & Vocabulary",
+    edition: "British Edition",
+    desc: "The World of Grammar & Vocabulary is a carefully graded grammar series.",
+    cover: "images/cover-twgv.png",
+    levelCodes: ["A1_1", "A1_2", "A2", "B1", "B1_PLUS", "B2", "C1C2"],
+  },
+
+  // VÍ DỤ thêm bộ sách khác - chỉ cần bỏ dấu // ở đầu mỗi dòng dưới đây:
+  // {
+  //   id: "smart",
+  //   title: "Smart",
+  //   edition: "British Edition",
+  //   desc: "Mô tả ngắn cho bộ Smart.",
+  //   cover: "images/cover-smart.png",
+  //   levelCodes: ["A1_1", "A1_2"],
+  // },
+];
+
+const TOTAL_MODULES = 10;
+
+let supabaseClient = null;   // sẽ được gán trong mmBoot()
+let mmBootError = null;      // lưu thông báo lỗi khởi động (nếu có)
+
+/**
+ * Hiển thị một dải băng đỏ ở đầu trang khi có lỗi cấu hình/kết nối.
+ * Mục đích: tránh tình trạng "bấm nút không có phản hồi" mà không rõ lý do.
+ * Trước đây nếu SUPABASE_URL còn là placeholder thì createClient() sẽ ném lỗi,
+ * làm toàn bộ JavaScript ngừng chạy và mọi nút bấm trở nên vô tác dụng.
+ */
+function mmShowBanner(message) {
+  const bar = document.createElement("div");
+  bar.style.cssText =
+    "position:fixed;top:0;left:0;right:0;z-index:9999;background:#E60000;color:#fff;" +
+    "padding:10px 16px;font-size:13px;line-height:1.5;text-align:center;" +
+    "font-family:'Calibri','Inter',system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.2)";
+  bar.textContent = message;
+  document.body.appendChild(bar);
+  document.body.style.paddingTop = "48px";
+}
+
+/**
+ * Khởi tạo kết nối Supabase một cách an toàn.
+ * Trả về true nếu kết nối sẵn sàng, false nếu có lỗi (đã hiện băng báo lỗi).
+ */
+/**
+ * Chốt chặn dùng chung: kiểm tra kết nối Supabase đã sẵn sàng chưa.
+ * Nếu chưa, in thông báo lỗi vào ô errorEl (nếu có) rồi trả về false,
+ * để hàm gọi nó dừng lại thay vì văng lỗi "Cannot read properties of null".
+ */
+function mmRequireClient(errorEl) {
+  if (supabaseClient) return true;
+  const msg = mmBootError || "Chưa kết nối được tới Supabase.";
+  if (errorEl) { errorEl.textContent = msg; } else { alert(msg); }
+  return false;
+}
+
+function mmBoot() {
+  // Kiểm tra 1: thư viện supabase-js đã tải được từ CDN chưa?
+  if (!window.supabase || typeof window.supabase.createClient !== "function") {
+    mmBootError = "Không tải được thư viện Supabase từ CDN. Vui lòng kiểm tra kết nối mạng, "
+                + "hoặc mở trang qua http(s):// thay vì mở trực tiếp bằng file://";
+    mmShowBanner(mmBootError);
+    return false;
+  }
+
+  // Kiểm tra 2: đã thay placeholder bằng thông tin thật chưa?
+  if (SUPABASE_URL.includes("YOUR-PROJECT-REF") || SUPABASE_ANON_KEY.includes("YOUR-ANON")) {
+    mmBootError = "CHƯA CẤU HÌNH: hãy mở file HTML này, tìm dòng SUPABASE_URL và "
+                + "SUPABASE_ANON_KEY ở gần cuối file rồi dán thông tin project Supabase của bạn vào.";
+    mmShowBanner(mmBootError);
+    return false;
+  }
+
+  // Kiểm tra 3: khởi tạo client, bắt mọi lỗi phát sinh
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return true;
+  } catch (err) {
+    mmBootError = "Lỗi khởi tạo kết nối Supabase: " + err.message;
+    mmShowBanner(mmBootError);
+    return false;
+  }
+}
+
+/* ===== 2. CHỐNG SAO CHÉP / CHỐNG LEAK ===== */
+(function initAntiCopy() {
+  // 1. Chặn menu chuột phải trên toàn trang
+  document.addEventListener("contextmenu", (e) => e.preventDefault());
+
+  // 2. Chặn bôi đen / chọn văn bản (kết hợp thêm CSS user-select: none)
+  document.addEventListener("selectstart", (e) => e.preventDefault());
+
+  // 3. Chặn tổ hợp phím thường dùng để mở DevTools / xem mã nguồn / lưu trang
+  document.addEventListener("keydown", (e) => {
+    const key = e.key ? e.key.toUpperCase() : "";
+    const isF12 = key === "F12";
+    const isDevTools = e.ctrlKey && e.shiftKey && (key === "I" || key === "J" || key === "C");
+    const isViewSource = e.ctrlKey && key === "U";
+    const isSavePage = e.ctrlKey && key === "S";
+    const isPrint = e.ctrlKey && key === "P";
+
+    if (isF12 || isDevTools || isViewSource || isSavePage || isPrint) {
+      e.preventDefault();
+      return false;
+    }
+  });
+
+  // 4. Cảnh báo nhẹ nếu phát hiện khung DevTools mở (kỹ thuật đo kích thước
+  //    cửa sổ - không hoàn hảo, chỉ mang tính răn đe)
+  let devtoolsWarned = false;
+  setInterval(() => {
+    const threshold = 160;
+    const widthGap = window.outerWidth - window.innerWidth > threshold;
+    const heightGap = window.outerHeight - window.innerHeight > threshold;
+    if ((widthGap || heightGap) && !devtoolsWarned) {
+      devtoolsWarned = true;
+      console.log(
+        "%cNội dung có bản quyền - NXB MM",
+        "color:red;font-size:20px;font-weight:bold;"
+      );
+    }
+  }, 1500);
+})();
+
+/* ===== 3. LOGIC TRANG NGƯỜI DÙNG ===== */
+let currentUser = null;              // { id, email }
+let unlockedLevelsMap = {};          // { level_code: activated_at (Date) }
+let currentLevelCode = null;         // level đang xem trong màn hình module
+let currentSeriesId = null;          // bộ sách (series) đang mở ở Tầng 2
+
+// =====================================================================
+// TIỆN ÍCH CHUNG
+// =====================================================================
+
+// Hiện thông báo nhỏ ở góc dưới màn hình trong 2.5 giây
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.remove("hidden");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.add("hidden"), 2500);
+}
+
+// Lấy hoặc tạo device_id riêng cho trình duyệt này, lưu vĩnh viễn trong localStorage
+function getOrCreateDeviceId() {
+  const KEY = "twg_device_id";
+  let id = localStorage.getItem(KEY);
+  if (!id) {
+    id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
+    localStorage.setItem(KEY, id);
+  }
+  return id;
+}
+
+// Tính số Module đã được mở khóa dựa trên thời điểm kích hoạt (activated_at).
+// Công thức phải khớp 100% với hàm SQL get_unlocked_module_count trong schema.sql:
+//   - Ngày kích hoạt: mở ngay 2 Module.
+//   - Sau mỗi 7 ngày (168 giờ) trọn vẹn: mở thêm 2 Module.
+//   - Tối đa 10 Module.
+function computeUnlockedCount(activatedAtDate) {
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const weeksPassed = Math.floor((Date.now() - activatedAtDate.getTime()) / msPerWeek);
+  const count = (weeksPassed + 1) * 2;
+  return Math.min(10, count);
+}
+
+// Tính ngày mà 1 Module cụ thể (1-10) sẽ được mở khóa, dựa trên activated_at.
+// Module lẻ/chẵn đi theo cặp: (1,2) mở ở tuần 1, (3,4) ở tuần 2, v.v.
+function computeUnlockDateForModule(activatedAtDate, moduleNumber) {
+  const weekIndex = Math.ceil(moduleNumber / 2); // 1..5
+  const offsetDays = (weekIndex - 1) * 7;
+  const d = new Date(activatedAtDate.getTime());
+  d.setDate(d.getDate() + offsetDays);
+  return d;
+}
+
+function formatDateVN(date) {
+  return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+
+// Trả về icon ổ khóa dạng SVG inline. Dùng SVG thay cho emoji 🔒 vì emoji
+// không thể tô màu theo bộ nhận diện, còn SVG thì dùng currentColor nên
+// sẽ tự ăn theo màu chữ của phần tử cha (ở đây là đỏ MM).
+function lockIconSvg(sizePx) {
+  const s = sizePx || 12;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+    stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px;">
+    <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+  </svg>`;
+}
+
+// =====================================================================
+// XÁC THỰC: ĐĂNG KÝ / ĐĂNG NHẬP / ĐĂNG XUẤT / KHỞI TẠO PHIÊN
+// =====================================================================
+
+function bindAuthTabs() {
+  const tabLogin = document.getElementById("tab-login");
+  const tabRegister = document.getElementById("tab-register");
+  const formLogin = document.getElementById("form-login");
+  const formRegister = document.getElementById("form-register");
+
+  tabLogin.addEventListener("click", () => {
+    tabLogin.classList.add("bg-[var(--mm-red)]", "text-white");
+    tabLogin.classList.remove("bg-white");
+    tabRegister.classList.remove("bg-[var(--mm-red)]", "text-white");
+    tabRegister.classList.add("bg-white");
+    formLogin.classList.remove("hidden");
+    formRegister.classList.add("hidden");
+  });
+
+  tabRegister.addEventListener("click", () => {
+    tabRegister.classList.add("bg-[var(--mm-red)]", "text-white");
+    tabRegister.classList.remove("bg-white");
+    tabLogin.classList.remove("bg-[var(--mm-red)]", "text-white");
+    tabLogin.classList.add("bg-white");
+    formRegister.classList.remove("hidden");
+    formLogin.classList.add("hidden");
+  });
+}
+
+// Xử lý đăng ký tài khoản mới
+async function handleRegister() {
+  const email = document.getElementById("reg-email").value.trim();
+  const password = document.getElementById("reg-password").value;
+  const errorEl = document.getElementById("register-error");
+  const successEl = document.getElementById("register-success");
+  errorEl.textContent = "";
+  successEl.textContent = "";
+
+  if (!mmRequireClient(errorEl)) return;   // dừng sớm nếu chưa cấu hình xong
+
+  if (!email || password.length < 6) {
+    errorEl.textContent = "Vui lòng nhập email hợp lệ và mật khẩu tối thiểu 6 ký tự.";
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) {
+    errorEl.textContent = "Đăng ký thất bại: " + error.message;
+    return;
+  }
+  successEl.textContent = "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận (nếu được bật), sau đó đăng nhập.";
+}
+
+// Xử lý đăng nhập, sau đó kiểm tra & đăng ký giới hạn thiết bị
+async function handleLogin() {
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  const errorEl = document.getElementById("login-error");
+  errorEl.textContent = "";
+
+  if (!mmRequireClient(errorEl)) return;   // dừng sớm nếu chưa cấu hình xong
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    errorEl.textContent = "Đăng nhập thất bại: " + error.message;
+    return;
+  }
+
+  const deviceOk = await ensureDeviceAllowed();
+  if (!deviceOk) {
+    // ensureDeviceAllowed đã tự đăng xuất và báo lỗi nếu vượt giới hạn thiết bị
+    return;
+  }
+
+  await enterApp(data.user);
+}
+
+// Gọi RPC register_device; nếu vượt quá 2 thiết bị thì đăng xuất và báo lỗi
+async function ensureDeviceAllowed() {
+  const deviceId = getOrCreateDeviceId();
+  const label = navigator.userAgent.slice(0, 60);
+
+  const { error } = await supabaseClient.rpc("register_device", {
+    p_device_id: deviceId,
+    p_device_label: label,
+  });
+
+  if (error) {
+    if (error.message && error.message.includes("DEVICE_LIMIT_REACHED")) {
+      await supabaseClient.auth.signOut();
+      document.getElementById("login-error").textContent =
+        "Tài khoản này đã đăng nhập trên 2 thiết bị khác. Vui lòng liên hệ quản trị viên để gỡ bớt thiết bị cũ.";
+    } else {
+      await supabaseClient.auth.signOut();
+      document.getElementById("login-error").textContent = "Không thể xác thực thiết bị: " + error.message;
+    }
+    return false;
+  }
+  return true;
+}
+
+async function handleLogout() {
+  if (supabaseClient) await supabaseClient.auth.signOut();
+  currentUser = null;
+  unlockedLevelsMap = {};
+  document.getElementById("user-box").classList.add("hidden");
+  document.getElementById("user-box").classList.remove("flex");
+  document.getElementById("series-screen").classList.add("hidden");
+  document.getElementById("dashboard-screen").classList.add("hidden");
+  document.getElementById("modules-screen").classList.add("hidden");
+  document.getElementById("auth-screen").classList.remove("hidden");
+}
+
+// Chạy khi trang vừa tải: nếu đã có phiên đăng nhập hợp lệ thì vào thẳng dashboard
+async function initSession() {
+  const { data } = await supabaseClient.auth.getSession();
+  if (data.session && data.session.user) {
+    const deviceOk = await ensureDeviceAllowed();
+    if (deviceOk) {
+      await enterApp(data.session.user);
+      return;
+    }
+  }
+  document.getElementById("auth-screen").classList.remove("hidden");
+}
+
+// Sau khi xác thực + thiết bị hợp lệ: hiện dashboard, ẩn màn hình đăng nhập
+async function enterApp(user) {
+  currentUser = { id: user.id, email: user.email };
+  document.getElementById("auth-screen").classList.add("hidden");
+  document.getElementById("user-box").classList.remove("hidden");
+  document.getElementById("user-box").classList.add("flex");
+  document.getElementById("user-email").textContent = currentUser.email;
+  // Sau khi đăng nhập -> vào Tầng 1 (danh sách bong bóng đầu sách)
+  await loadUserProgress();
+  showSeriesScreen();
+}
+
+// =====================================================================
+// ĐIỀU HƯỚNG 3 TẦNG
+//   Tầng 1: #series-screen     -> bong bóng đầu sách
+//   Tầng 2: #dashboard-screen  -> danh sách Level của bộ sách đã chọn
+//   Tầng 3: #key-modal         -> popup nhập mã kích hoạt cho 1 Level
+//           (hoặc #modules-screen nếu Level đó đã kích hoạt)
+// =====================================================================
+
+/**
+ * Tải tiến độ kích hoạt của người dùng từ Supabase vào biến unlockedLevelsMap.
+ * GIỮ NGUYÊN truy vấn Supabase gốc, chỉ tách riêng ra khỏi phần hiển thị
+ * để cả Tầng 1 và Tầng 2 dùng lại được cùng một bộ dữ liệu.
+ */
+async function loadUserProgress() {
+  const { data, error } = await supabaseClient
+    .from("user_unlocked_levels")
+    .select("level_code, activated_at")
+    .eq("user_id", currentUser.id);
+
+  if (error) {
+    showToast("Lỗi tải dữ liệu: " + error.message);
+    return false;
+  }
+
+  unlockedLevelsMap = {};
+  (data || []).forEach((row) => {
+    unlockedLevelsMap[row.level_code] = new Date(row.activated_at);
+  });
+  return true;
+}
+
+/** Ẩn cả 3 màn hình, dùng trước khi hiện màn hình mong muốn. */
+function hideAllScreens() {
+  ["series-screen", "dashboard-screen", "modules-screen"].forEach((id) => {
+    document.getElementById(id).classList.add("hidden");
+  });
+}
+
+// ---------------------------------------------------------------------
+// TẦNG 1: MÀN HÌNH BONG BÓNG ĐẦU SÁCH
+// ---------------------------------------------------------------------
+
+/** Hiện Tầng 1. Dùng làm màn hình mặc định sau khi đăng nhập. */
+function showSeriesScreen() {
+  currentSeriesId = null;
+  hideAllScreens();
+  document.getElementById("series-screen").classList.remove("hidden");
+  renderSeriesGrid();
+}
+
+/**
+ * Sinh các bong bóng đầu sách từ mảng SERIES.
+ * Mỗi thẻ hiển thị: ảnh bìa (có overlay "SEE MORE" khi hover) bên trái |
+ * tên sách + nhãn edition + mô tả + dãy mã cấp độ bên phải.
+ */
+function renderSeriesGrid() {
+  const grid = document.getElementById("series-grid");
+  grid.innerHTML = "";
+
+  SERIES.forEach((series) => {
+    // Đếm số Level trong bộ sách này mà người dùng đã kích hoạt
+    const activatedCount = series.levelCodes.filter((c) => !!unlockedLevelsMap[c]).length;
+    const totalCount = series.levelCodes.length;
+
+    // Lấy đúng danh sách Level (theo thứ tự khai báo) thuộc bộ sách này,
+    // dùng để sinh dãy "A1.1 | A1.2 | A2 | ..." bên dưới mô tả.
+    const levelsOfSeries = series.levelCodes
+      .map((code) => LEVELS.find((l) => l.code === code))
+      .filter(Boolean);
+
+    const levelPillsHtml = levelsOfSeries
+      .map((lvl, idx) => {
+        const sep = idx > 0 ? `<span class="series-level-sep">|</span>` : "";
+        // data-level-code để gắn sự kiện click riêng cho từng mã, không phụ
+        // thuộc vào việc đóng closure biến lvl (an toàn khi chạy trong vòng lặp)
+        return `${sep}<span class="series-level-item" data-level-code="${lvl.code}">${lvl.label}</span>`;
+      })
+      .join("");
+
+    const card = document.createElement("div");
+    card.className = "series-card";
+    card.innerHTML = `
+      <div class="cover-wrap" data-role="open-series">
+        <img src="${series.cover}" alt="${series.title}" class="series-cover"
+             onerror="this.style.visibility='hidden'" />
+        <div class="cover-overlay"><span>See more</span></div>
+      </div>
+      <div class="series-body">
+        ${series.edition ? `<span class="edition-badge" style="margin-bottom:.5rem;align-self:flex-start;">${series.edition}</span>` : ""}
+        <p class="font-display series-title mb-1.5">${series.title}</p>
+        <p class="series-desc mb-3">${series.desc}</p>
+        <div class="series-level-row mb-3">${levelPillsHtml}</div>
+        <div class="series-meta">
+          <span class="series-stat">${activatedCount}/${totalCount} cấp độ đã kích hoạt</span>
+          <span class="text-sm font-semibold text-[var(--mm-red)]">Xem các cấp độ &rarr;</span>
+        </div>
+      </div>
+    `;
+
+    // Bấm vào bất kỳ đâu trên thẻ (kể cả ảnh bìa / chữ "SEE MORE") -> Tầng 2
+    card.addEventListener("click", () => showLevelScreen(series.id));
+
+    // Bấm riêng vào 1 mã cấp độ (VD: A1.2) -> mở thẳng Tầng 3.
+    // stopPropagation để không kích hoạt luôn sự kiện click của cả thẻ ở trên.
+    card.querySelectorAll(".series-level-item").forEach((pill) => {
+      pill.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const code = pill.dataset.levelCode;
+        // Nếu Level đã kích hoạt: vào thẳng danh sách Module của nó (đi qua
+        // Tầng 2 trước để currentSeriesId được thiết lập đúng ngữ cảnh).
+        // Nếu chưa kích hoạt: mở ngay popup nhập mã (đúng yêu cầu Tầng 3).
+        if (unlockedLevelsMap[code]) {
+          currentSeriesId = series.id;
+          showModulesScreen(code);
+        } else {
+          currentSeriesId = series.id;
+          openKeyModal(code);
+        }
+      });
+    });
+
+    grid.appendChild(card);
+  });
+}
+
+// ---------------------------------------------------------------------
+// TẦNG 2: DANH SÁCH LEVEL CỦA MỘT BỘ SÁCH
+// ---------------------------------------------------------------------
+
+/** Hiện Tầng 2 cho bộ sách có id tương ứng. */
+function showLevelScreen(seriesId) {
+  const series = SERIES.find((x) => x.id === seriesId);
+  if (!series) return;
+
+  currentSeriesId = seriesId;
+  hideAllScreens();
+  document.getElementById("dashboard-screen").classList.remove("hidden");
+  document.getElementById("dashboard-title").textContent = series.title;
+  document.getElementById("dashboard-subtitle").textContent =
+    "Nhấn vào 1 cấp độ để xem tiến độ, hoặc nhập mã kích hoạt nếu chưa mở.";
+
+  renderLevelGrid(series);
+}
+
+/**
+ * Sinh các thẻ Level, CHỈ gồm những Level thuộc bộ sách đang mở.
+ * Level đã kích hoạt -> vào Tầng danh sách Module.
+ * Level chưa kích hoạt -> mở popup nhập mã (Tầng 3).
+ */
+function renderLevelGrid(series) {
+  const grid = document.getElementById("level-grid");
+  grid.innerHTML = "";
+
+  // Lọc LEVELS theo danh sách mã của bộ sách, giữ đúng thứ tự đã khai báo
+  const levelsOfSeries = series.levelCodes
+    .map((code) => LEVELS.find((l) => l.code === code))
+    .filter(Boolean);
+
+  levelsOfSeries.forEach((lvl) => {
+    const activatedAt = unlockedLevelsMap[lvl.code];
+    const isUnlocked = !!activatedAt;
+    const card = document.createElement("div");
+    card.className = "level-card rounded-xl p-5 cursor-pointer" + (isUnlocked ? "" : " locked");
+
+    if (isUnlocked) {
+      const unlockedCount = computeUnlockedCount(activatedAt);
+      const percent = Math.round((unlockedCount / TOTAL_MODULES) * 100);
+      card.innerHTML = `
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div class="min-w-0">
+            <p class="font-display level-name">${lvl.label}</p>
+            <p class="level-sub">${lvl.subtitle}</p>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--mm-red-soft)] text-[var(--mm-red-dark)] font-semibold shrink-0">Đã kích hoạt</span>
+        </div>
+        <div class="progress-track h-2 rounded-full overflow-hidden mb-2">
+          <div class="progress-fill h-full" style="width:${percent}%"></div>
+        </div>
+        <p class="text-xs text-[var(--text-muted)] font-medium">Đang mở đến Module ${unlockedCount}/${TOTAL_MODULES} &middot; ${percent}% hoàn thành</p>
+      `;
+      card.addEventListener("click", () => showModulesScreen(lvl.code));
+    } else {
+      card.innerHTML = `
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div class="min-w-0">
+            <p class="font-display level-name text-[var(--text-muted)]">${lvl.label}</p>
+            <p class="level-sub">${lvl.subtitle}</p>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--mm-red-soft)] text-[var(--mm-red-dark)] font-semibold shrink-0">${lockIconSvg(11)}Chưa kích hoạt</span>
+        </div>
+        <p class="text-sm text-[var(--lock)]">Nhấn để nhập mã kích hoạt cấp độ này</p>
+      `;
+      card.addEventListener("click", () => openKeyModal(lvl.code));
+    }
+
+    grid.appendChild(card);
+  });
+}
+
+// =====================================================================
+// POPUP NHẬP MÃ KÍCH HOẠT
+// =====================================================================
+
+let keyModalLevelCode = null;
+
+function openKeyModal(levelCode) {
+  keyModalLevelCode = levelCode;
+  const lvl = LEVELS.find((l) => l.code === levelCode);
+  document.getElementById("key-modal-level").textContent = lvl ? lvl.label : levelCode;
+  document.getElementById("key-input").value = "";
+  document.getElementById("key-error").textContent = "";
+  document.getElementById("key-modal").classList.remove("hidden");
+  document.getElementById("key-modal").classList.add("flex");
+}
+
+function closeKeyModal() {
+  document.getElementById("key-modal").classList.add("hidden");
+  document.getElementById("key-modal").classList.remove("flex");
+}
+
+async function submitKey() {
+  const code = document.getElementById("key-input").value.trim();
+  const errorEl = document.getElementById("key-error");
+  errorEl.textContent = "";
+
+  if (!mmRequireClient(errorEl)) return;   // dừng sớm nếu chưa cấu hình xong
+
+  if (!code) {
+    errorEl.textContent = "Vui lòng nhập mã code.";
+    return;
+  }
+
+  const { data, error } = await supabaseClient.rpc("redeem_key", { p_code: code });
+
+  if (error) {
+    if (error.message.includes("CODE_NOT_FOUND")) {
+      errorEl.textContent = "Mã code không tồn tại. Vui lòng kiểm tra lại.";
+    } else if (error.message.includes("CODE_ALREADY_USED")) {
+      errorEl.textContent = "Mã code này đã được sử dụng trước đó.";
+    } else {
+      errorEl.textContent = "Có lỗi xảy ra: " + error.message;
+    }
+    return;
+  }
+
+  closeKeyModal();
+  showToast(`Kích hoạt thành công Level ${data}!`);
+  await loadUserProgress();
+  // Quay lại đúng bộ sách đang xem (nếu có), nếu không thì về Tầng 1
+  if (currentSeriesId) {
+    showLevelScreen(currentSeriesId);
+  } else {
+    showSeriesScreen();
+  }
+}
+
+// =====================================================================
+// MÀN HÌNH DANH SÁCH 10 MODULE CỦA 1 LEVEL
+// =====================================================================
+
+function showModulesScreen(levelCode) {
+  currentLevelCode = levelCode;
+  const activatedAt = unlockedLevelsMap[levelCode];
+  const lvl = LEVELS.find((l) => l.code === levelCode);
+
+  hideAllScreens();
+  document.getElementById("modules-screen").classList.remove("hidden");
+  document.getElementById("modules-title").textContent = `${lvl.label} - ${lvl.subtitle}`;
+  document.getElementById("modules-subtitle").textContent =
+    `Kích hoạt ngày ${formatDateVN(activatedAt)}. Module mới tự động mở mỗi 7 ngày.`;
+
+  const unlockedCount = computeUnlockedCount(activatedAt);
+  const percent = Math.round((unlockedCount / TOTAL_MODULES) * 100);
+  document.getElementById("modules-percent").textContent = percent + "%";
+  document.getElementById("modules-progress-fill").style.width = percent + "%";
+
+  const list = document.getElementById("module-list");
+  list.innerHTML = "";
+
+  for (let m = 1; m <= TOTAL_MODULES; m++) {
+    const isUnlocked = m <= unlockedCount;
+    const row = document.createElement("div");
+    row.className = "module-row rounded-lg px-4 py-3 flex items-center justify-between border border-[var(--border)] " +
+      (isUnlocked ? "unlocked" : "locked");
+
+    if (isUnlocked) {
+      row.innerHTML = `
+        <div>
+          <p class="font-medium text-sm">Module ${m}</p>
+          <p class="text-xs text-[var(--mm-red)]">Đã mở khóa</p>
+        </div>
+        <button class="btn-primary text-xs font-medium px-3 py-1.5 rounded-md" data-module="${m}">Xem đáp án</button>
+      `;
+      row.querySelector("button").addEventListener("click", () => openModuleViewer(levelCode, m));
+    } else {
+      const unlockDate = computeUnlockDateForModule(activatedAt, m);
+      row.innerHTML = `
+        <div>
+          <p class="font-medium text-sm">Module ${m}</p>
+          <p class="text-xs"><span class="text-[var(--mm-red)]">${lockIconSvg(12)}</span>Sẽ tự động mở khóa vào ${formatDateVN(unlockDate)}</p>
+        </div>
+      `;
+    }
+    list.appendChild(row);
+  }
+}
+
+// =====================================================================
+// MODAL XEM ĐÁP ÁN (kèm watermark động)
+// =====================================================================
+
+async function openModuleViewer(levelCode, moduleNumber) {
+  const { data, error } = await supabaseClient
+    .from("module_content")
+    .select("title, content")
+    .eq("level_code", levelCode)
+    .eq("module_number", moduleNumber)
+    .maybeSingle();
+
+  if (error) {
+    showToast("Lỗi tải nội dung: " + error.message);
+    return;
+  }
+
+  const lvl = LEVELS.find((l) => l.code === levelCode);
+  document.getElementById("viewer-title").textContent =
+    data ? `${lvl.label} - Module ${moduleNumber}: ${data.title || ""}` : `${lvl.label} - Module ${moduleNumber}`;
+
+  const contentEl = document.getElementById("viewer-content");
+  if (data && data.content) {
+    contentEl.innerHTML = data.content; // Nội dung do Admin nhập, được tin tưởng (không phải input người dùng)
+  } else {
+    contentEl.innerHTML = `<p class="text-[var(--lock)]">Nội dung đang được cập nhật, vui lòng quay lại sau.</p>`;
+  }
+
+  renderWatermark();
+
+  document.getElementById("viewer-modal").classList.remove("hidden");
+  document.getElementById("viewer-modal").classList.add("flex");
+}
+
+// Phủ nhiều dòng watermark chứa email người dùng để răn đe việc chụp/quay màn hình
+function renderWatermark() {
+  const layer = document.getElementById("watermark-layer");
+  layer.innerHTML = "";
+  const text = `Bản quyền NXB MM - ${currentUser.email}`;
+  for (let i = 0; i < 24; i++) {
+    const span = document.createElement("span");
+    span.textContent = text;
+    layer.appendChild(span);
+  }
+}
+
+function closeViewerModal() {
+  document.getElementById("viewer-modal").classList.add("hidden");
+  document.getElementById("viewer-modal").classList.remove("flex");
+}
+
+// =====================================================================
+// GẮN SỰ KIỆN & KHỞI CHẠY
+// =====================================================================
+
+function bindEvents() {
+  bindAuthTabs();
+  document.getElementById("btn-login").addEventListener("click", handleLogin);
+  document.getElementById("btn-register").addEventListener("click", handleRegister);
+  document.getElementById("btn-logout").addEventListener("click", handleLogout);
+  // Nút quay lại ở Tầng 3 (màn hình Module) -> về Tầng 2 (danh sách Level)
+  document.getElementById("btn-back-dashboard").addEventListener("click", () => {
+    if (currentSeriesId) { showLevelScreen(currentSeriesId); } else { showSeriesScreen(); }
+  });
+  // Nút quay lại ở Tầng 2 -> về Tầng 1 (bong bóng đầu sách)
+  document.getElementById("btn-back-series").addEventListener("click", showSeriesScreen);
+  document.getElementById("btn-cancel-key").addEventListener("click", closeKeyModal);
+  document.getElementById("btn-submit-key").addEventListener("click", submitKey);
+  document.getElementById("btn-close-viewer").addEventListener("click", closeViewerModal);
+}
+
+// ---- KHỞI CHẠY ----
+// Luôn gắn sự kiện trước, để nút bấm có phản hồi ngay cả khi cấu hình sai.
+bindEvents();
+
+// Chỉ gọi Supabase khi kết nối đã sẵn sàng.
+if (mmBoot()) {
+  initSession();
+} else {
+  // Cấu hình chưa đúng: hiện màn hình đăng nhập kèm thông báo lỗi cụ thể
+  document.getElementById("auth-screen").classList.remove("hidden");
+  document.getElementById("login-error").textContent = mmBootError;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin - Check Key TWGV</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Hệ màu thương hiệu MM Publications - giữ đồng bộ với index.html */
+  :root{
+    --mm-red:       #FF3333;
+    --mm-red-dark:  #E60000;
+    --mm-red-deep:  #663300;
+    --mm-red-soft:  #FFEBEB;
+    --text-dark:    #333333;
+    --text-muted:   #6E6E6E;
+    --bg-page:      #EAEAEA;
+    --card:         #FFFFFF;
+    --border:       #DCDCDC;
+    --radius:       10px;
+    --shadow-soft:  0 1px 2px rgba(51,51,51,.06), 0 4px 12px rgba(51,51,51,.06);
+  }
+
+  body{
+    background:var(--bg-page);
+    color:var(--text-dark);
+    font-family:'Calibri','CF Asty Std','Inter','Roboto',system-ui,-apple-system,sans-serif;
+  }
+  .font-display{
+    font-family:'Calibri','CF Asty Std','Inter','Roboto',system-ui,sans-serif;
+    font-weight:700; letter-spacing:-.01em;
+  }
+
+  /* Logo: khoá tỷ lệ gốc 539x198, mobile không nhỏ hơn 26px */
+  .mm-logo{ height:36px; width:auto; aspect-ratio:539 / 198; object-fit:contain; display:block; }
+  .mm-logo-wrap{ padding:18px; margin:-18px; }
+  @media (max-width:640px){
+    .mm-logo{ height:28px; min-height:26px; }
+    .mm-logo-wrap{ padding:14px; margin:-14px; }
+  }
+
+  .card-surface{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow-soft);
+  }
+
+  /* TAB: tab đang active có nền đỏ thương hiệu */
+  .tab-btn{
+    background:var(--card);
+    border:1px solid var(--border);
+    color:var(--text-dark);
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .tab-btn:hover{ border-color:var(--mm-red); color:var(--mm-red); }
+  .tab-btn.active{
+    background:var(--mm-red);
+    border-color:var(--mm-red);
+    color:#fff;
+  }
+  .tab-btn.active:hover{ background:var(--mm-red-dark); color:#fff; }
+
+  /* NÚT: mọi nút hành động chính đều dùng đỏ MM (thay vàng/xanh cũ) */
+  .btn-primary{ background:var(--mm-red); color:#fff; transition:background .15s ease; }
+  .btn-primary:hover{ background:var(--mm-red-dark); }
+  .btn-outline{
+    background:#fff; color:var(--text-dark); border:1px solid var(--border);
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .btn-outline:hover{ border-color:var(--mm-red); color:var(--mm-red); }
+
+  input, select, textarea{ border:1px solid var(--border); border-radius:8px; }
+  input:focus, select:focus, textarea:focus{
+    outline:none; border-color:var(--mm-red);
+    box-shadow:0 0 0 3px rgba(255,51,51,.12);
+  }
+
+  table{ border-collapse:collapse; width:100%; }
+  th, td{ border-bottom:1px solid var(--border); padding:9px 10px; text-align:left; font-size:13px; }
+  th{ background:#F5F5F5; font-weight:600; color:var(--text-dark); }
+  tbody tr:hover{ background:var(--mm-red-soft); }
+
+  /* ============ TYPOGRAPHY: TĂNG CỠ CHỮ CƠ BẢN ============
+     Đồng bộ với index.html: tăng font-size gốc 16px -> 17px, mọi thành phần
+     tính theo rem sẽ tự to lên đều nhau. */
+  /* Tự định nghĩa .hidden, không phụ thuộc Tailwind CDN */
+  .hidden{ display:none !important; }
+
+  html{ font-size:17px; }
+
+  /* Tên trang ở Header: to hơn 20% + in đậm */
+  .brand-title{
+    font-size:1.2em;
+    font-weight:700;
+    line-height:1.25;
+    letter-spacing:-.01em;
+  }
+
+  /* Tiêu đề từng khu vực quản trị: to & đậm rõ nét */
+  .panel-title{
+    font-size:1.45rem;
+    font-weight:700;
+    line-height:1.25;
+    letter-spacing:-.01em;
+  }
+
+  /* Chữ trong bảng dữ liệu to lên chút cho dễ đọc khi rà soát mã key */
+  th, td{ font-size:.85rem; }
+
+</style>
+</head>
+<body class="min-h-screen">
+
+<header class="bg-white border-b border-[var(--border)]">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-4 min-w-0">
+      <!-- Logo nằm ngang - thay file thật tại images/logo-mm.png -->
+      <div class="mm-logo-wrap shrink-0">
+        <img src="images/logo-mm.png" alt="MM Publications" class="mm-logo" />
+      </div>
+      <div class="hidden sm:block h-8 w-px bg-[var(--border)] shrink-0"></div>
+      <p class="font-display brand-title hidden sm:block truncate">Trang Quản trị - Check Key</p>
+    </div>
+    <div id="admin-user-box" class="hidden items-center gap-3 text-sm shrink-0">
+      <span id="admin-email" class="text-[var(--text-muted)] hidden sm:inline"></span>
+      <button id="btn-admin-logout" class="btn-outline px-3 py-1.5 rounded-md">Đăng xuất</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-5 py-8">
+
+  <!-- ĐĂNG NHẬP ADMIN -->
+  <section id="admin-login-screen" class="max-w-sm mx-auto card-surface p-6">
+    <p class="font-display panel-title mb-4">Đăng nhập quản trị</p>
+    <div class="space-y-3">
+      <input id="admin-email-input" type="email" placeholder="Email admin" class="w-full rounded-md px-3 py-2 text-sm" />
+      <input id="admin-password-input" type="password" placeholder="Mật khẩu" class="w-full rounded-md px-3 py-2 text-sm" />
+      <button id="btn-admin-login" class="w-full btn-primary rounded-md py-2 text-sm font-medium">Đăng nhập</button>
+      <p id="admin-login-error" class="text-sm text-[var(--mm-red-dark)]"></p>
+    </div>
+  </section>
+
+  <!-- KHU VỰC QUẢN TRỊ (chỉ hiện khi is_admin = true) -->
+  <section id="admin-panel" class="hidden">
+
+    <div class="flex gap-2 mb-6">
+      <button class="tab-btn active px-4 py-2 rounded-md text-sm font-medium" data-tab="tab-generate">Tạo Key</button>
+      <button class="tab-btn px-4 py-2 rounded-md text-sm font-medium" data-tab="tab-list">Danh sách Key</button>
+      <button class="tab-btn px-4 py-2 rounded-md text-sm font-medium" data-tab="tab-content">Nội dung Module</button>
+    </div>
+
+    <!-- TAB 1: TẠO KEY -->
+    <div id="tab-generate" class="tab-panel card-surface p-6">
+      <p class="font-display panel-title mb-4">Tạo mã Key hàng loạt</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <select id="gen-level" class="rounded-md px-3 py-2 text-sm"></select>
+        <input id="gen-quantity" type="number" min="1" max="5000" value="50" placeholder="Số lượng" class="rounded-md px-3 py-2 text-sm" />
+        <input id="gen-note" type="text" placeholder="Ghi chú lô (tùy chọn)" class="rounded-md px-3 py-2 text-sm" />
+      </div>
+      <button id="btn-generate" class="btn-primary rounded-md px-4 py-2 text-sm font-medium">Tạo Key</button>
+      <span id="generate-status" class="text-sm text-[var(--text-muted)] ml-3"></span>
+
+      <div id="generate-result" class="mt-5 hidden">
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-sm font-medium">Đã tạo <span id="generate-count">0</span> mã</p>
+          <button id="btn-export-generated" class="btn-outline text-sm px-3 py-1.5 rounded-md">Xuất CSV</button>
+        </div>
+        <div class="max-h-64 overflow-y-auto border border-[var(--border)] rounded-md">
+          <table><thead><tr><th>Mã Code</th><th>Level</th></tr></thead><tbody id="generate-table-body"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: DANH SÁCH KEY -->
+    <div id="tab-list" class="tab-panel hidden card-surface p-6">
+      <p class="font-display panel-title mb-4">Danh sách Key đã tạo</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <select id="filter-level" class="rounded-md px-3 py-2 text-sm">
+          <option value="">Tất cả Level</option>
+        </select>
+        <select id="filter-status" class="rounded-md px-3 py-2 text-sm">
+          <option value="">Tất cả trạng thái</option>
+          <option value="unused">Chưa dùng</option>
+          <option value="used">Đã dùng</option>
+        </select>
+        <button id="btn-filter-load" class="btn-primary rounded-md px-4 py-2 text-sm font-medium">Tải danh sách</button>
+      </div>
+      <div class="flex justify-end mb-2">
+        <button id="btn-export-list" class="btn-outline text-sm px-3 py-1.5 rounded-md">Xuất CSV danh sách này</button>
+      </div>
+      <div class="max-h-96 overflow-y-auto border border-[var(--border)] rounded-md">
+        <table>
+          <thead><tr><th>Mã Code</th><th>Level</th><th>Trạng thái</th><th>Email đã dùng</th><th>Ngày kích hoạt</th><th>Hành động</th></tr></thead>
+          <tbody id="list-table-body"></tbody>
+        </table>
+      </div>
+      <!-- Ghi chú quan trọng cho Admin: tránh hiểu nhầm phạm vi của nút Thu hồi/Xóa -->
+      <p class="text-xs text-[var(--text-muted)] mt-2">
+        Lưu ý: "Thu hồi" / "Xóa" chỉ tác động lên chính mã Key (để mã hết hiệu lực
+        hoặc dùng lại được). Nếu học viên đã kích hoạt Level bằng mã này, họ vẫn
+        giữ quyền xem Module đã mở — muốn thu hồi cả quyền xem, cần xóa dòng
+        tương ứng trong bảng <code>user_unlocked_levels</code> trên Supabase.
+      </p>
+    </div>
+
+    <!-- TAB 3: NỘI DUNG MODULE -->
+    <div id="tab-content" class="tab-panel hidden card-surface p-6">
+      <p class="font-display panel-title mb-4">Nhập / cập nhật nội dung đáp án theo Module</p>
+
+      <!-- data-mode + data-editing-id: theo dõi form đang ở chế độ "Thêm mới"
+           hay "Sửa" 1 dòng đã tồn tại (gán khi Admin bấm nút Sửa ở bảng bên dưới) -->
+      <div id="content-form" data-editing-id="">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <select id="content-level" class="rounded-md px-3 py-2 text-sm"></select>
+          <select id="content-module" class="rounded-md px-3 py-2 text-sm"></select>
+        </div>
+        <input id="content-title" type="text" placeholder="Tiêu đề Module (VD: Unit 1 - Present Simple)" class="w-full rounded-md px-3 py-2 text-sm mb-3" />
+        <input id="content-link" type="url" placeholder="Link tài liệu / bài học (VD: Google Drive, PDF...) - không bắt buộc" class="w-full rounded-md px-3 py-2 text-sm mb-3" />
+        <textarea id="content-body" rows="6" placeholder="Nội dung đáp án (có thể dùng HTML cơ bản: <b>, <ul><li>, <table>...)" class="w-full rounded-md px-3 py-2 text-sm mb-3"></textarea>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-save-content" class="btn-primary rounded-md px-4 py-2 text-sm font-medium">Lưu nội dung</button>
+          <!-- Chỉ hiện khi đang Sửa 1 dòng có sẵn, để Admin thoát chế độ Sửa mà không cần tải lại trang -->
+          <button type="button" id="btn-cancel-edit-content" class="btn-outline rounded-md px-4 py-2 text-sm font-medium hidden">Hủy sửa</button>
+          <span id="content-status" class="text-sm text-[var(--text-muted)]"></span>
+        </div>
+      </div>
+
+      <hr class="my-6 border-[var(--border)]" />
+
+      <!-- BẢNG QUẢN LÝ TOÀN BỘ NỘI DUNG/LINK ĐÃ NHẬP -->
+      <div class="flex items-center justify-between mb-3">
+        <p class="font-display text-base font-bold">Danh sách nội dung / link đã nhập</p>
+        <button id="btn-refresh-content-list" class="btn-outline text-sm px-3 py-1.5 rounded-md">Tải lại danh sách</button>
+      </div>
+      <div class="max-h-96 overflow-y-auto border border-[var(--border)] rounded-md">
+        <table>
+          <thead><tr><th>Level</th><th>Module</th><th>Tiêu đề</th><th>Link tài liệu</th><th>Hành động</th></tr></thead>
+          <tbody id="content-list-table-body"></tbody>
+        </table>
+      </div>
+      <p id="content-list-empty" class="text-sm text-[var(--text-muted)] mt-3 hidden">Chưa có Module nào được nhập nội dung.</p>
+    </div>
+
+  </section>
+</main>
+
+<script>
+/* ===== 1. CẤU HÌNH & KẾT NỐI SUPABASE ===== */
+/* ==================================================================
+   BƯỚC DUY NHẤT BẠN CẦN SỬA: dán 2 giá trị dưới đây.
+   Lấy tại: Supabase Dashboard > Project Settings > API
+     - Project URL      -> SUPABASE_URL
+     - anon public key  -> SUPABASE_ANON_KEY
+   (anon key là key công khai, an toàn để đặt trong file HTML;
+    bảo mật thật nằm ở RLS Policy đã cấu hình trong schema.sql)
+   ================================================================== */
+const SUPABASE_URL      = "https://fjznnrzbhymzdhrfinbz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqem5ucnpiaHltemRocmZpbmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MTIxMDAsImV4cCI6MjEwNDA4ODEwMH0.R_PPSk3sCQ4lteW6CugKxU0GdqwDRPjfyRMfFCJFVrM";
+
+/* ================== KHÔNG CẦN SỬA TỪ ĐÂY TRỞ XUỐNG ================== */
+
+// Danh sách 7 Level cố định theo bộ giáo trình.
+// "code" là giá trị lưu trong database (không dấu, không ký tự đặc biệt).
+// "label" là chữ hiển thị cho người dùng.
+const LEVELS = [
+  { code: "A1_1",    label: "A1.1",  subtitle: "Beginners" },
+  { code: "A1_2",    label: "A1.2",  subtitle: "Elementary" },
+  { code: "A2",      label: "A2",    subtitle: "Pre-Intermediate" },
+  { code: "B1",      label: "B1",    subtitle: "Intermediate" },
+  { code: "B1_PLUS", label: "B1+",   subtitle: "Upper Intermediate" },
+  { code: "B2",      label: "B2",    subtitle: "Upper-Intermediate+" },
+  { code: "C1C2",    label: "C1/C2", subtitle: "Advanced" },
+];
+
+const TOTAL_MODULES = 10;
+
+let supabaseClient = null;   // sẽ được gán trong mmBoot()
+let mmBootError = null;      // lưu thông báo lỗi khởi động (nếu có)
+
+/**
+ * Hiển thị một dải băng đỏ ở đầu trang khi có lỗi cấu hình/kết nối.
+ * Mục đích: tránh tình trạng "bấm nút không có phản hồi" mà không rõ lý do.
+ * Trước đây nếu SUPABASE_URL còn là placeholder thì createClient() sẽ ném lỗi,
+ * làm toàn bộ JavaScript ngừng chạy và mọi nút bấm trở nên vô tác dụng.
+ */
+function mmShowBanner(message) {
+  const bar = document.createElement("div");
+  bar.style.cssText =
+    "position:fixed;top:0;left:0;right:0;z-index:9999;background:#E60000;color:#fff;" +
+    "padding:10px 16px;font-size:13px;line-height:1.5;text-align:center;" +
+    "font-family:'Calibri','Inter',system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.2)";
+  bar.textContent = message;
+  document.body.appendChild(bar);
+  document.body.style.paddingTop = "48px";
+}
+
+/**
+ * Khởi tạo kết nối Supabase một cách an toàn.
+ * Trả về true nếu kết nối sẵn sàng, false nếu có lỗi (đã hiện băng báo lỗi).
+ */
+/**
+ * Chốt chặn dùng chung: kiểm tra kết nối Supabase đã sẵn sàng chưa.
+ * Nếu chưa, in thông báo lỗi vào ô errorEl (nếu có) rồi trả về false,
+ * để hàm gọi nó dừng lại thay vì văng lỗi "Cannot read properties of null".
+ */
+function mmRequireClient(errorEl) {
+  if (supabaseClient) return true;
+  const msg = mmBootError || "Chưa kết nối được tới Supabase.";
+  if (errorEl) { errorEl.textContent = msg; } else { alert(msg); }
+  return false;
+}
+
+function mmBoot() {
+  // Kiểm tra 1: thư viện supabase-js đã tải được từ CDN chưa?
+  if (!window.supabase || typeof window.supabase.createClient !== "function") {
+    mmBootError = "Không tải được thư viện Supabase từ CDN. Vui lòng kiểm tra kết nối mạng, "
+                + "hoặc mở trang qua http(s):// thay vì mở trực tiếp bằng file://";
+    mmShowBanner(mmBootError);
+    return false;
+  }
+
+  // Kiểm tra 2: đã thay placeholder bằng thông tin thật chưa?
+  if (SUPABASE_URL.includes("YOUR-PROJECT-REF") || SUPABASE_ANON_KEY.includes("YOUR-ANON")) {
+    mmBootError = "CHƯA CẤU HÌNH: hãy mở file HTML này, tìm dòng SUPABASE_URL và "
+                + "SUPABASE_ANON_KEY ở gần cuối file rồi dán thông tin project Supabase của bạn vào.";
+    mmShowBanner(mmBootError);
+    return false;
+  }
+
+  // Kiểm tra 3: khởi tạo client, bắt mọi lỗi phát sinh
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return true;
+  } catch (err) {
+    mmBootError = "Lỗi khởi tạo kết nối Supabase: " + err.message;
+    mmShowBanner(mmBootError);
+    return false;
+  }
+}
+
+/* ===== 2. LOGIC TRANG QUẢN TRỊ ===== */
+let lastGeneratedRows = []; // [{code, level_code}] của lần tạo Key gần nhất
+
+// =====================================================================
+// ĐĂNG NHẬP ADMIN
+// =====================================================================
+
+async function adminLogin() {
+  const email = document.getElementById("admin-email-input").value.trim();
+  const password = document.getElementById("admin-password-input").value;
+  const errorEl = document.getElementById("admin-login-error");
+  errorEl.textContent = "";
+
+  if (!mmRequireClient(errorEl)) return;   // dừng sớm nếu chưa cấu hình xong
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    errorEl.textContent = "Đăng nhập thất bại: " + error.message;
+    return;
+  }
+
+  // Kiểm tra quyền admin qua hàm RPC check_is_admin (whitelist email trên Supabase)
+  const { data: isAdmin, error: adminCheckError } = await supabaseClient.rpc("check_is_admin");
+
+  if (adminCheckError || isAdmin !== true) {
+    errorEl.textContent = "Tài khoản này không có quyền quản trị.";
+    await supabaseClient.auth.signOut();
+    return;
+  }
+
+  document.getElementById("admin-login-screen").classList.add("hidden");
+  document.getElementById("admin-panel").classList.remove("hidden");
+  document.getElementById("admin-user-box").classList.remove("hidden");
+  document.getElementById("admin-user-box").classList.add("flex");
+  document.getElementById("admin-email").textContent = data.user.email;
+
+  populateLevelSelects();
+}
+
+async function adminLogout() {
+  if (supabaseClient) await supabaseClient.auth.signOut();
+  document.getElementById("admin-panel").classList.add("hidden");
+  document.getElementById("admin-user-box").classList.add("hidden");
+  document.getElementById("admin-login-screen").classList.remove("hidden");
+}
+
+async function initAdminSession() {
+  const { data } = await supabaseClient.auth.getSession();
+  if (data.session && data.session.user) {
+    const { data: isAdmin, error: adminCheckError } = await supabaseClient.rpc("check_is_admin");
+    if (!adminCheckError && isAdmin === true) {
+      document.getElementById("admin-login-screen").classList.add("hidden");
+      document.getElementById("admin-panel").classList.remove("hidden");
+      document.getElementById("admin-user-box").classList.remove("hidden");
+      document.getElementById("admin-user-box").classList.add("flex");
+      document.getElementById("admin-email").textContent = data.session.user.email;
+      populateLevelSelects();
+      return;
+    }
+  }
+  document.getElementById("admin-login-screen").classList.remove("hidden");
+}
+
+// =====================================================================
+// ĐIỀN SẴN CÁC Ô CHỌN LEVEL / MODULE
+// =====================================================================
+
+function populateLevelSelects() {
+  const genSelect = document.getElementById("gen-level");
+  const filterSelect = document.getElementById("filter-level");
+  const contentSelect = document.getElementById("content-level");
+  const moduleSelect = document.getElementById("content-module");
+
+  LEVELS.forEach((lvl) => {
+    genSelect.appendChild(new Option(`${lvl.label} (${lvl.subtitle})`, lvl.code));
+    filterSelect.appendChild(new Option(`${lvl.label} (${lvl.subtitle})`, lvl.code));
+    contentSelect.appendChild(new Option(`${lvl.label} (${lvl.subtitle})`, lvl.code));
+  });
+
+  for (let m = 1; m <= TOTAL_MODULES; m++) {
+    moduleSelect.appendChild(new Option(`Module ${m}`, m));
+  }
+
+  loadContentEditorFields(); // tải nội dung sẵn có (nếu có) cho lựa chọn mặc định
+  loadContentList(); // tải luôn bảng danh sách quản lý nội dung/link ở Tab 3
+}
+
+// =====================================================================
+// TAB 1: TẠO KEY HÀNG LOẠT
+// =====================================================================
+
+async function generateKeys() {
+  const levelCode = document.getElementById("gen-level").value;
+  const quantity = parseInt(document.getElementById("gen-quantity").value, 10);
+  const note = document.getElementById("gen-note").value.trim() || null;
+  const statusEl = document.getElementById("generate-status");
+  if (!mmRequireClient(statusEl)) return;
+  statusEl.textContent = "Đang tạo...";
+
+  const { data, error } = await supabaseClient.rpc("admin_generate_keys", {
+    p_level_code: levelCode,
+    p_quantity: quantity,
+    p_note: note,
+  });
+
+  if (error) {
+    statusEl.textContent = "Lỗi: " + error.message;
+    return;
+  }
+
+  // data trả về là mảng các chuỗi code (setof text)
+  lastGeneratedRows = data.map((code) => ({ code, level_code: levelCode }));
+  statusEl.textContent = `Đã tạo thành công ${lastGeneratedRows.length} mã.`;
+
+  document.getElementById("generate-count").textContent = lastGeneratedRows.length;
+  const tbody = document.getElementById("generate-table-body");
+  tbody.innerHTML = lastGeneratedRows
+    .map((r) => `<tr><td>${r.code}</td><td>${r.level_code}</td></tr>`)
+    .join("");
+  document.getElementById("generate-result").classList.remove("hidden");
+}
+
+function exportGeneratedCsv() {
+  exportRowsToCsv(lastGeneratedRows.map((r) => ({ code: r.code, level_code: r.level_code })), "keys_moi_tao.csv");
+}
+
+// =====================================================================
+// TAB 2: DANH SÁCH KEY + LỌC + XUẤT CSV
+// =====================================================================
+
+let lastListedRows = [];
+
+async function loadKeyList() {
+  if (!mmRequireClient(null)) return;
+  const levelFilter = document.getElementById("filter-level").value;
+  const statusFilter = document.getElementById("filter-status").value;
+
+  let query = supabaseClient
+    .from("keys")
+    .select("code, level_code, is_used, activated_at, user_id, profiles:user_id(email)")
+    .order("created_at", { ascending: false })
+    .limit(1000);
+
+  if (levelFilter) query = query.eq("level_code", levelFilter);
+  if (statusFilter === "used") query = query.eq("is_used", true);
+  if (statusFilter === "unused") query = query.eq("is_used", false);
+
+  const { data, error } = await query;
+  if (error) {
+    showAdminToast("Lỗi tải danh sách: " + error.message);
+    return;
+  }
+
+  lastListedRows = data || [];
+  const tbody = document.getElementById("list-table-body");
+  tbody.innerHTML = lastListedRows
+    .map((row) => {
+      const email = row.profiles ? row.profiles.email : "";
+      const activated = row.activated_at ? new Date(row.activated_at).toLocaleDateString("vi-VN") : "";
+      // Nhãn nút đổi trạng thái phụ thuộc trạng thái hiện tại của dòng:
+      //   Đã dùng    -> "Thu hồi"       (rã gán user, mã dùng lại được)
+      //   Chưa dùng  -> "Kích hoạt lại" (đánh dấu đã dùng, vô hiệu hóa mã)
+      const toggleLabel = row.is_used ? "Thu hồi" : "Kích hoạt lại";
+      return `<tr>
+        <td>${row.code}</td>
+        <td>${row.level_code}</td>
+        <td>${row.is_used ? "Đã dùng" : "Chưa dùng"}</td>
+        <td>${email}</td>
+        <td>${activated}</td>
+        <td class="whitespace-nowrap">
+          <button class="btn-outline text-xs px-2 py-1 rounded-md mr-1" data-action="toggle-key" data-code="${row.code}">${toggleLabel}</button>
+          <button class="btn-outline text-xs px-2 py-1 rounded-md" data-action="delete-key" data-code="${row.code}" style="color:var(--mm-red-dark);border-color:var(--mm-red-dark);">Xóa</button>
+        </td>
+      </tr>`;
+    })
+    .join("");
+}
+
+/**
+ * Đổi trạng thái 1 mã Key (Thu hồi <-> Kích hoạt lại).
+ * LƯU Ý QUAN TRỌNG: thao tác này CHỈ đổi trạng thái của bản ghi trong bảng
+ * "keys", KHÔNG xóa quyền xem Module mà học viên đã có (quyền đó nằm ở bảng
+ * "user_unlocked_levels", tách biệt hoàn toàn). Nếu cần thu hồi cả quyền xem,
+ * Admin cần xóa thêm dòng tương ứng trong "user_unlocked_levels" (qua Supabase
+ * Table Editor), vì đây là 2 khái niệm khác nhau: "mã Key" và "quyền đã cấp".
+ */
+async function toggleKeyStatus(code) {
+  const row = lastListedRows.find((r) => r.code === code);
+  if (!row) return;
+
+  const willRevoke = row.is_used === true; // đang "Đã dùng" -> Thu hồi
+  const confirmMsg = willRevoke
+    ? `Thu hồi mã "${code}"? Mã sẽ chuyển về "Chưa dùng" và có thể được nhập lại bởi bất kỳ ai.`
+    : `Kích hoạt (vô hiệu hóa) mã "${code}"? Mã sẽ chuyển sang "Đã dùng" và không ai nhập được nữa.`;
+  if (!window.confirm(confirmMsg)) return;
+
+  if (!mmRequireClient(null)) return;
+
+  // Thu hồi: rã gán user_id/activated_at để mã thực sự "sạch", dùng lại được.
+  // Kích hoạt lại (vô hiệu hóa thủ công): chỉ đổi cờ is_used, không gán user
+  // nào vì đây không phải một lượt kích hoạt thật của học viên.
+  const patch = willRevoke
+    ? { is_used: false, user_id: null, activated_at: null }
+    : { is_used: true };
+
+  const { error } = await supabaseClient.from("keys").update(patch).eq("code", code);
+  if (error) {
+    showAdminToast("Lỗi khi đổi trạng thái: " + error.message);
+    return;
+  }
+  await loadKeyList();
+}
+
+/** Xóa hẳn 1 mã Key khỏi database. Không ảnh hưởng quyền xem đã cấp (xem ghi chú ở toggleKeyStatus). */
+async function deleteKeyRow(code) {
+  if (!window.confirm(`Xóa vĩnh viễn mã "${code}"? Hành động này không thể hoàn tác.`)) return;
+  if (!mmRequireClient(null)) return;
+
+  const { error } = await supabaseClient.from("keys").delete().eq("code", code);
+  if (error) {
+    showAdminToast("Lỗi khi xóa: " + error.message);
+    return;
+  }
+  await loadKeyList();
+}
+
+function exportListCsv() {
+  const rows = lastListedRows.map((row) => ({
+    code: row.code,
+    level_code: row.level_code,
+    status: row.is_used ? "used" : "unused",
+    email: row.profiles ? row.profiles.email : "",
+    activated_at: row.activated_at || "",
+  }));
+  exportRowsToCsv(rows, "danh_sach_key.csv");
+}
+
+// Hàm dùng chung: chuyển 1 mảng object thành file CSV và tự động tải xuống
+function exportRowsToCsv(rows, filename) {
+  if (!rows || rows.length === 0) {
+    showAdminToast("Không có dữ liệu để xuất.");
+    return;
+  }
+  const headers = Object.keys(rows[0]);
+  const csvLines = [
+    headers.join(","),
+    ...rows.map((r) => headers.map((h) => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(",")),
+  ];
+  const csvContent = csvLines.join("\n");
+  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" }); // \uFEFF: BOM để Excel hiển thị đúng tiếng Việt
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// =====================================================================
+// TAB 3: NHẬP / SỬA / XÓA NỘI DUNG & LINK TÀI LIỆU THEO MODULE
+// =====================================================================
+
+let lastContentRows = []; // toàn bộ dòng module_content đang hiển thị ở bảng danh sách
+
+/** Điền sẵn form theo Level + Module đang chọn trên 2 dropdown (dùng khi đổi dropdown thủ công). */
+async function loadContentEditorFields() {
+  if (!supabaseClient) return;
+  const levelCode = document.getElementById("content-level").value;
+  const moduleNumber = parseInt(document.getElementById("content-module").value, 10);
+  if (!levelCode || !moduleNumber) return;
+
+  const { data } = await supabaseClient
+    .from("module_content")
+    .select("title, content, resource_url")
+    .eq("level_code", levelCode)
+    .eq("module_number", moduleNumber)
+    .maybeSingle();
+
+  document.getElementById("content-title").value = data ? data.title || "" : "";
+  document.getElementById("content-link").value = data ? data.resource_url || "" : "";
+  document.getElementById("content-body").value = data ? data.content || "" : "";
+}
+
+/** Lưu (thêm mới hoặc cập nhật) nội dung/link cho đúng 1 Module.
+ *  Vì (level_code, module_number) là khóa duy nhất, upsert tự hiểu là
+ *  "cập nhật" nếu Module đó đã có dữ liệu, hoặc "thêm mới" nếu chưa có. */
+async function saveModuleContent() {
+  const levelCode = document.getElementById("content-level").value;
+  const moduleNumber = parseInt(document.getElementById("content-module").value, 10);
+  const title = document.getElementById("content-title").value.trim();
+  const link = document.getElementById("content-link").value.trim();
+  const content = document.getElementById("content-body").value;
+  const statusEl = document.getElementById("content-status");
+  if (!mmRequireClient(statusEl)) return;
+  statusEl.textContent = "Đang lưu...";
+
+  const { error } = await supabaseClient
+    .from("module_content")
+    .upsert(
+      {
+        level_code: levelCode,
+        module_number: moduleNumber,
+        title,
+        content,
+        resource_url: link || null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "level_code,module_number" }
+    );
+
+  if (error) {
+    statusEl.textContent = "Lỗi khi lưu: " + error.message;
+    return;
+  }
+  statusEl.textContent = "Đã lưu thành công.";
+  cancelEditContent(); // đưa form về trạng thái "thêm mới" sạch sẽ
+  await loadContentList();
+}
+
+/** Tải toàn bộ danh sách Module đã có nội dung/link, đổ vào bảng quản lý bên dưới form. */
+async function loadContentList() {
+  if (!supabaseClient) return;
+  const { data, error } = await supabaseClient
+    .from("module_content")
+    .select("id, level_code, module_number, title, resource_url")
+    .order("level_code", { ascending: true })
+    .order("module_number", { ascending: true });
+
+  if (error) {
+    showAdminToast("Lỗi tải danh sách nội dung: " + error.message);
+    return;
+  }
+
+  lastContentRows = data || [];
+  const tbody = document.getElementById("content-list-table-body");
+  const emptyMsg = document.getElementById("content-list-empty");
+
+  if (lastContentRows.length === 0) {
+    tbody.innerHTML = "";
+    emptyMsg.classList.remove("hidden");
+    return;
+  }
+  emptyMsg.classList.add("hidden");
+
+  tbody.innerHTML = lastContentRows
+    .map((row) => {
+      const levelLabel = (LEVELS.find((l) => l.code === row.level_code) || {}).label || row.level_code;
+      const linkHtml = row.resource_url
+        ? `<a href="${row.resource_url}" target="_blank" rel="noopener" style="color:var(--mm-red-dark);text-decoration:underline;">Mở link</a>`
+        : `<span class="text-[var(--text-muted)]">(chưa có)</span>`;
+      return `<tr>
+        <td>${levelLabel}</td>
+        <td>Module ${row.module_number}</td>
+        <td>${row.title || "(chưa có tiêu đề)"}</td>
+        <td>${linkHtml}</td>
+        <td class="whitespace-nowrap">
+          <button class="btn-outline text-xs px-2 py-1 rounded-md mr-1" data-action="edit-content" data-id="${row.id}">Sửa</button>
+          <button class="btn-outline text-xs px-2 py-1 rounded-md" data-action="delete-content" data-id="${row.id}" style="color:var(--mm-red-dark);border-color:var(--mm-red-dark);">Xóa</button>
+        </td>
+      </tr>`;
+    })
+    .join("");
+}
+
+/** Đưa 1 dòng đã có lên form để Admin sửa (không cần gọi lại Supabase vì đã có sẵn dữ liệu ở lastContentRows). */
+async function editContentRow(id) {
+  const row = lastContentRows.find((r) => String(r.id) === String(id));
+  if (!row) return;
+
+  // Cần lấy đủ nội dung "content" (bảng danh sách không tải cột này để nhẹ) trước khi đổ vào form
+  if (!mmRequireClient(document.getElementById("content-status"))) return;
+  const { data, error } = await supabaseClient
+    .from("module_content")
+    .select("content")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    showAdminToast("Lỗi tải nội dung chi tiết: " + error.message);
+    return;
+  }
+
+  document.getElementById("content-level").value = row.level_code;
+  document.getElementById("content-module").value = row.module_number;
+  document.getElementById("content-title").value = row.title || "";
+  document.getElementById("content-link").value = row.resource_url || "";
+  document.getElementById("content-body").value = data ? data.content || "" : "";
+
+  document.getElementById("content-form").dataset.editingId = id;
+  document.getElementById("btn-cancel-edit-content").classList.remove("hidden");
+  const levelLabel = (LEVELS.find((l) => l.code === row.level_code) || {}).label || row.level_code;
+  document.getElementById("content-status").textContent =
+    `Đang sửa: ${levelLabel} - Module ${row.module_number}`;
+
+  document.getElementById("content-form").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/** Thoát chế độ Sửa, đưa form về trạng thái thêm mới sạch sẽ. */
+function cancelEditContent() {
+  document.getElementById("content-form").dataset.editingId = "";
+  document.getElementById("btn-cancel-edit-content").classList.add("hidden");
+  document.getElementById("content-status").textContent = "";
+  document.getElementById("content-title").value = "";
+  document.getElementById("content-link").value = "";
+  document.getElementById("content-body").value = "";
+}
+
+/** Xóa hẳn 1 dòng nội dung/link Module. Sau khi xóa, học viên sẽ thấy "Nội dung đang cập nhật". */
+async function deleteContentRow(id) {
+  const row = lastContentRows.find((r) => String(r.id) === String(id));
+  const label = row
+    ? `${(LEVELS.find((l) => l.code === row.level_code) || {}).label || row.level_code} - Module ${row.module_number}`
+    : id;
+  if (!window.confirm(`Xóa nội dung/link của "${label}"? Học viên sẽ thấy "Nội dung đang cập nhật" cho Module này.`)) return;
+  if (!mmRequireClient(null)) return;
+
+  const { error } = await supabaseClient.from("module_content").delete().eq("id", id);
+  if (error) {
+    showAdminToast("Lỗi khi xóa: " + error.message);
+    return;
+  }
+  await loadContentList();
+}
+
+// =====================================================================
+// ĐIỀU HƯỚNG TAB + TOAST NHỎ (dùng alert đơn giản cho admin)
+// =====================================================================
+
+function showAdminToast(msg) {
+  alert(msg);
+}
+
+function bindTabs() {
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach((p) => p.classList.add("hidden"));
+      btn.classList.add("active");
+      document.getElementById(btn.dataset.tab).classList.remove("hidden");
+    });
+  });
+}
+
+// =====================================================================
+// GẮN SỰ KIỆN & KHỞI CHẠY
+// =====================================================================
+
+function bindAdminEvents() {
+  bindTabs();
+  document.getElementById("btn-admin-login").addEventListener("click", adminLogin);
+  document.getElementById("btn-admin-logout").addEventListener("click", adminLogout);
+  document.getElementById("btn-generate").addEventListener("click", generateKeys);
+  document.getElementById("btn-export-generated").addEventListener("click", exportGeneratedCsv);
+  document.getElementById("btn-filter-load").addEventListener("click", loadKeyList);
+  document.getElementById("btn-export-list").addEventListener("click", exportListCsv);
+  document.getElementById("btn-save-content").addEventListener("click", saveModuleContent);
+  document.getElementById("btn-cancel-edit-content").addEventListener("click", cancelEditContent);
+  document.getElementById("btn-refresh-content-list").addEventListener("click", loadContentList);
+  document.getElementById("content-level").addEventListener("change", loadContentEditorFields);
+  document.getElementById("content-module").addEventListener("change", loadContentEditorFields);
+
+  // Event delegation: bảng "Danh sách Key" được vẽ lại động (innerHTML) mỗi lần
+  // tải, nên gắn sự kiện 1 lần duy nhất lên <tbody> cha thay vì gắn lại cho
+  // từng nút mỗi lần render - tránh rò rỉ bộ nhớ và bị gắn trùng sự kiện.
+  document.getElementById("list-table-body").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    const code = btn.dataset.code;
+    if (btn.dataset.action === "toggle-key") toggleKeyStatus(code);
+    if (btn.dataset.action === "delete-key") deleteKeyRow(code);
+  });
+
+  // Tương tự cho bảng "Danh sách nội dung / link đã nhập" ở Tab 3
+  document.getElementById("content-list-table-body").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    const id = btn.dataset.id;
+    if (btn.dataset.action === "edit-content") editContentRow(id);
+    if (btn.dataset.action === "delete-content") deleteContentRow(id);
+  });
+}
+
+// ---- KHỞI CHẠY ----
+bindAdminEvents();
+
+if (mmBoot()) {
+  initAdminSession();
+} else {
+  document.getElementById("admin-login-error").textContent = mmBootError;
+}
+</script>
+</body>
+</html>
