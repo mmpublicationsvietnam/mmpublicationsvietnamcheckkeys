@@ -102,14 +102,9 @@ create table if not exists public.module_content (
   module_number  int  not null check (module_number between 1 and 10),
   title          text not null default '',
   content        text not null default '',
-  resource_url   text,                    -- link tài liệu/bài học ngoài (PDF, Drive, v.v. - tùy chọn)
   updated_at     timestamptz not null default now(),
   unique (level_code, module_number)
 );
-
--- An toàn khi chạy lại trên project đã có bảng module_content từ trước
--- (trước khi có yêu cầu quản lý link tài liệu):
-alter table public.module_content add column if not exists resource_url text;
 
 -- =====================================================================
 -- HÀM TÍNH SỐ MODULE ĐÃ MỞ (dùng chung cho RLS lẫn cho client hiển thị)
@@ -335,20 +330,6 @@ create policy "keys_insert_admin"
   on public.keys for insert
   with check (public.is_admin());
 
--- Cho phép Admin sửa (đổi trạng thái đã dùng/chưa dùng, gỡ gán user...) và
--- xóa hẳn 1 mã Key. Trước đây 2 quyền này chưa có policy nên RLS sẽ âm thầm
--- chặn (trả về 0 dòng bị ảnh hưởng) nếu Admin thao tác trực tiếp trên bảng.
-drop policy if exists "keys_update_admin" on public.keys;
-create policy "keys_update_admin"
-  on public.keys for update
-  using (public.is_admin())
-  with check (public.is_admin());
-
-drop policy if exists "keys_delete_admin" on public.keys;
-create policy "keys_delete_admin"
-  on public.keys for delete
-  using (public.is_admin());
-
 -- ---- user_unlocked_levels ----
 drop policy if exists "unlocked_select_own_or_admin" on public.user_unlocked_levels;
 create policy "unlocked_select_own_or_admin"
@@ -386,10 +367,4 @@ create policy "module_content_admin_write"
 --    có email của bạn, sửa cột is_admin thành true.
 -- 2. Bảng module_content cần được nhập nội dung đáp án (title/content)
 --    cho đủ 7 level x 10 module trước khi học viên có thể xem được gì.
--- 3. Nếu project của bạn đã chạy file này từ trước (trước khi có chức năng
---    Xóa/Đổi trạng thái Key và quản lý Link tài liệu Module trong admin.html),
---    hãy chạy lại TOÀN BỘ file này 1 lần nữa. File được viết an toàn để chạy
---    lại nhiều lần (dùng "if not exists" / "drop policy if exists"), sẽ tự
---    thêm cột "resource_url" và 2 policy "keys_update_admin"/"keys_delete_admin"
---    còn thiếu mà không ảnh hưởng tới dữ liệu đã có.
 -- =====================================================================

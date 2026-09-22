@@ -6,14 +6,16 @@ checkkey/
 ├── sql/
 │   └── schema.sql        <- Chạy 1 lần trong Supabase SQL Editor
 ├── public/
-│   ├── config.js         <- Điền URL + Anon Key của bạn vào đây
-│   ├── anti-copy.js
-│   ├── index.html         <- Trang cho học viên
-│   ├── app.js
-│   ├── admin.html         <- Trang cho quản trị viên
-│   └── admin.js
+│   ├── index.html        <- Trang học viên (ĐÃ GỘP SẴN toàn bộ JS + cấu hình)
+│   ├── admin.html        <- Trang quản trị (ĐÃ GỘP SẴN toàn bộ JS + cấu hình)
+│   └── images/
+│       ├── logo-mm.png          <- Logo nằm ngang (dùng ở Header)
+│       └── logo-mm-stacked.png  <- Logo xếp chồng (dự phòng cho footer)
 └── README.md
 ```
+> Từ phiên bản này, `config.js` / `app.js` / `admin.js` / `anti-copy.js` đã được
+> gộp thẳng vào 2 file HTML. Bạn chỉ cần copy thư mục `public/` là chạy được,
+> không còn phụ thuộc file JS rời.
 
 ## BƯỚC 1 - Tạo project Supabase
 1. Vào https://supabase.com → tạo project mới (chọn region Singapore cho nhanh với người dùng VN).
@@ -22,10 +24,30 @@ checkkey/
 3. Vào **SQL Editor**, dán toàn bộ nội dung file `sql/schema.sql` và bấm **Run**.
    - File này tạo đủ 5 bảng (`profiles`, `user_devices`, `keys`, `user_unlocked_levels`, `module_content`), các hàm RPC, và toàn bộ RLS Policy.
 
-## BƯỚC 2 - Lấy thông tin kết nối
-Vào **Project Settings → API**, copy:
-- `Project URL` → dán vào biến `SUPABASE_URL` trong `public/config.js`
-- `anon public` key → dán vào biến `SUPABASE_ANON_KEY` trong `public/config.js`
+## BƯỚC 2 - Lấy thông tin kết nối  ⚠️ BẮT BUỘC
+Vào **Project Settings → API**, copy 2 giá trị và dán vào **CẢ HAI** file
+`public/index.html` và `public/admin.html`.
+
+Mở file bằng Notepad / VS Code, kéo xuống gần cuối file, tìm khối:
+```js
+const SUPABASE_URL      = "https://YOUR-PROJECT-REF.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";
+```
+Thay bằng thông tin thật của bạn, rồi lưu lại. Nhớ làm ở cả 2 file.
+
+**Nếu quên bước này**, trang sẽ hiện một dải băng đỏ ở đầu màn hình báo
+"CHƯA CẤU HÌNH", và nút đăng nhập sẽ báo lỗi cụ thể thay vì im lặng không phản hồi.
+
+### Lưu ý: phải chạy qua http, không mở bằng file://
+Nếu bạn nháy đúp mở file HTML trực tiếp (địa chỉ bắt đầu bằng `file:///`),
+trình duyệt sẽ chặn việc tải thư viện Supabase từ CDN và đăng nhập sẽ không chạy.
+Hãy chạy qua một web server đơn giản:
+```bash
+# Trong thư mục public/, chạy 1 trong 2 lệnh:
+python -m http.server 8080
+npx serve .
+```
+Rồi mở `http://localhost:8080`. Khi deploy lên Netlify/Vercel thì không gặp vấn đề này.
 
 ## BƯỚC 3 - Tạo tài khoản Admin đầu tiên
 1. Mở `index.html`, đăng ký 1 tài khoản bình thường bằng email bạn dùng để quản trị.
