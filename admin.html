@@ -277,8 +277,20 @@ const LEVELS = [
   { code: "C1C2",    label: "C1/C2", subtitle: "Advanced" },
 ];
 
-const TOTAL_MODULES = 10;
-
+// Thêm danh sách Module bao gồm Module Hello (Mã '0') và các Module từ 1 đến 10
+const MODULE_LIST = [
+  { value: 0, label: "Module Hello" },
+  { value: 1, label: "Module 1" },
+  { value: 2, label: "Module 2" },
+  { value: 3, label: "Module 3" },
+  { value: 4, label: "Module 4" },
+  { value: 5, label: "Module 5" },
+  { value: 6, label: "Module 6" },
+  { value: 7, label: "Module 7" },
+  { value: 8, label: "Module 8" },
+  { value: 9, label: "Module 9" },
+  { value: 10, label: "Module 10" }
+];
 let supabaseClient = null;   // sẽ được gán trong mmBoot()
 let mmBootError = null;      // lưu thông báo lỗi khởi động (nếu có)
 
@@ -422,10 +434,13 @@ function populateLevelSelects() {
     contentSelect.appendChild(new Option(`${lvl.label} (${lvl.subtitle})`, lvl.code));
   });
 
-  for (let m = 1; m <= TOTAL_MODULES; m++) {
-    moduleSelect.appendChild(new Option(`Module ${m}`, m));
-  }
+// 1. Thêm lựa chọn Module Hello lên đầu tiên (giá trị lưu là 0)
+moduleSelect.appendChild(new Option("Module Hello", 0));
 
+// 2. Chạy vòng lặp tạo tiếp Module 1 đến Module 10
+for (let m = 1; m <= TOTAL_MODULES; m++) {
+  moduleSelect.appendChild(new Option(`Module ${m}`, m));
+}
   loadContentEditorFields(); // tải nội dung sẵn có (nếu có) cho lựa chọn mặc định
   loadContentList(); // tải luôn bảng danh sách quản lý nội dung/link ở Tab 3
 }
