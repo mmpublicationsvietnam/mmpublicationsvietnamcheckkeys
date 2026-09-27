@@ -78,7 +78,7 @@ function populateLevelSelects() {
     filterSelect.appendChild(new Option(`${lvl.label} (${lvl.subtitle})`, lvl.code));
     contentSelect.appendChild(new Option(`${lvl.label} (${lvl.subtitle})`, lvl.code));
   });
-moduleSelect.appendChild(new Option("Module Hello", 100));
+moduleSelect.appendChild(new Option("Module Hello", 0));
   for (let m = 1; m <= TOTAL_MODULES; m++) {
     moduleSelect.appendChild(new Option(`Module ${m}`, m));
   }
