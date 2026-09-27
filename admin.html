@@ -438,6 +438,7 @@ function populateLevelSelects() {
 moduleSelect.appendChild(new Option("Module Hello", 0));
 
 // 2. Chạy vòng lặp tạo tiếp Module 1 đến Module 10
+const TOTAL_MODULES = 10; // <<--- CHỈ CẦN THÊM ĐÚNG DÒNG NÀY VÀO TRƯỚC VÒNG LẶP
 for (let m = 1; m <= TOTAL_MODULES; m++) {
   moduleSelect.appendChild(new Option(`Module ${m}`, m));
 }
