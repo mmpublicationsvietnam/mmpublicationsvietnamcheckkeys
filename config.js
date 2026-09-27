@@ -16,13 +16,11 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 // "code" dùng để lưu trong DB (không dấu, không ký tự đặc biệt để an toàn).
 // "label" dùng để hiển thị cho người dùng.
 const LEVELS = [
-  { code: "A1_1", label: "A1.1", subtitle: "Beginners" },
-  { code: "A1_2", label: "A1.2", subtitle: "Elementary" },
-  { code: "A2", label: "A2", subtitle: "Pre-Intermediate" },
-  { code: "B1", label: "B1", subtitle: "Intermediate" },
-  { code: "B1_PLUS", label: "B1+", subtitle: "Upper Intermediate" },
-  { code: "B2", label: "B2", subtitle: "Upper-Intermediate+" },
-  { code: "C1C2", label: "C1/C2", subtitle: "Advanced" },
+  { code: "A1_1", label: "A1.1", subtitle: "Beginners", totalModules: 24 },
+  { code: "A1_2", label: "A1.2", subtitle: "Elementary", totalModules: 28 },
+  { code: "A2", label: "A2", subtitle: "Pre-Intermediate", totalModules: 28 },
+  { code: "B1", label: "B1", subtitle: "Intermediate", totalModules: 26 },
+  { code: "B1_PLUS", label: "B1+", subtitle: "Upper Intermediate", totalModules: 26 },
+  { code: "B2", label: "B2", subtitle: "Upper-Intermediate+", totalModules: 21 },
+  { code: "C1C2", label: "C1/C2", subtitle: "Advanced", totalModules: 21 }
 ];
-
-const TOTAL_MODULES = 10;
