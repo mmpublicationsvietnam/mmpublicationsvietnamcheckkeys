@@ -67,23 +67,67 @@ async function initAdminSession() {
 // ĐIỀN SẴN CÁC Ô CHỌN LEVEL / MODULE
 // =====================================================================
 
+// Hàm cập nhật danh sách Module dựa trên Level đang được chọn
+function updateModuleOptions() {
+  const selectedLevelCode = document.getElementById("content-level").value;
+  const moduleSelect = document.getElementById("content-module");
+
+  // Lấy thông tin totalModules từ config.js
+  const selectedLevel = LEVELS.find((lvl) => lvl.code === selectedLevelCode);
+  const totalModules = selectedLevel ? selectedLevel.totalModules : 24;
+
+  moduleSelect.innerHTML = "";
+
+  // Thêm Module Hello (Module 0)
+  moduleSelect.appendChild(new Option("Module Hello", 0));
+
+  // Thêm các Module từ 1 đến số totalModules của Level đó
+  for (let m = 1; m <= totalModules; m++) {
+    moduleSelect.appendChild(new Option(`Module ${m}`, m));
+  }
+
+  loadContentEditorFields();
+}
+
+// Hàm nạp các ô chọn Level ban đầu
 function populateLevelSelects() {
   const genSelect = document.getElementById("gen-level");
   const filterSelect = document.getElementById("filter-level");
   const contentSelect = document.getElementById("content-level");
-  const moduleSelect = document.getElementById("content-module");
+
+  genSelect.innerHTML = "";
+  filterSelect.innerHTML = "";
+  contentSelect.innerHTML = "";
 
   LEVELS.forEach((lvl) => {
     genSelect.appendChild(new Option(`${lvl.label} (${lvl.subtitle})`, lvl.code));
     filterSelect.appendChild(new Option(`${lvl.label} (${lvl.subtitle})`, lvl.code));
     contentSelect.appendChild(new Option(`${lvl.label} (${lvl.subtitle})`, lvl.code));
   });
-moduleSelect.appendChild(new Option("Module Hello", 0));
-  for (let m = 1; m <= TOTAL_MODULES; m++) {
-    moduleSelect.appendChild(new Option(`Module ${m}`, m));
-  }
 
-  loadContentEditorFields(); // tải nội dung sẵn có (nếu có) cho lựa chọn mặc định
+  updateModuleOptions();
+}
+
+  loadContentEditorFields();
+}
+
+// Hàm nạp các ô chọn Level ban đầu
+function populateLevelSelects() {
+  const genSelect = document.getElementById("gen-level");
+  const filterSelect = document.getElementById("filter-level");
+  const contentSelect = document.getElementById("content-level");
+
+  genSelect.innerHTML = "";
+  filterSelect.innerHTML = "";
+  contentSelect.innerHTML = "";
+
+  LEVELS.forEach((lvl) => {
+    genSelect.appendChild(new Option(`${lvl.label} (${lvl.subtitle})`, lvl.code));
+    filterSelect.appendChild(new Option(`${lvl.label} (${lvl.subtitle})`, lvl.code));
+    contentSelect.appendChild(new Option(`${lvl.label} (${lvl.subtitle})`, lvl.code));
+  });
+
+  updateModuleOptions();
 }
 
 // =====================================================================
@@ -273,7 +317,7 @@ function bindAdminEvents() {
   document.getElementById("btn-filter-load").addEventListener("click", loadKeyList);
   document.getElementById("btn-export-list").addEventListener("click", exportListCsv);
   document.getElementById("btn-save-content").addEventListener("click", saveModuleContent);
-  document.getElementById("content-level").addEventListener("change", loadContentEditorFields);
+document.getElementById("content-level").addEventListener("change", updateModuleOptions);
   document.getElementById("content-module").addEventListener("change", loadContentEditorFields);
 }
 
