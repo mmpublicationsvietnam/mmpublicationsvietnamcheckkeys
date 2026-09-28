@@ -307,51 +307,60 @@ async function submitKey() {
 // MÀN HÌNH DANH SÁCH 10 MODULE CỦA 1 LEVEL
 // =====================================================================
 
+// =====================================================================
+// MÀN HÌNH DANH SÁCH MODULE CỦA 1 LEVEL
+// =====================================================================
+
 function showModulesScreen(levelCode) {
-  currentLevelCode = levelCode;
-  const activatedAt = unlockedLevelsMap[levelCode];
-  const lvl = LEVELS.find((l) => l.code === levelCode);
+    currentLevelCode = levelCode;
+    const activatedAt = unlockedLevelsMap[levelCode];
+    const lvl = LEVELS.find((l) => l.code === levelCode);
 
-  document.getElementById("dashboard-screen").classList.add("hidden");
-  document.getElementById("modules-screen").classList.remove("hidden");
-  document.getElementById("modules-title").textContent = `${lvl.label} - ${lvl.subtitle}`;
-  document.getElementById("modules-subtitle").textContent =
-    `Kích hoạt ngày ${formatDateVN(activatedAt)}. Module mới tự động mở mỗi 7 ngày.`;
+    document.getElementById("dashboard-screen").classList.add("hidden");
+    document.getElementById("modules-screen").classList.remove("hidden");
+    document.getElementById("modules-title").textContent = `${lvl.label} - ${lvl.subtitle}`;
+    document.getElementById("modules-subtitle").textContent = 
+        `Kích hoạt ngày ${formatDateVN(activatedAt)}. Module mới tự động mở mỗi 7 ngày.`;
 
-  const unlockedCount = computeUnlockedCount(activatedAt);
-  const percent = Math.round((unlockedCount / TOTAL_MODULES) * 100);
-  document.getElementById("modules-percent").textContent = percent + "%";
-  document.getElementById("modules-progress-fill").style.width = percent + "%";
+    const unlockedCount = computeUnlockedCount(activatedAt);
+    
+    // --- CẬP NHẬT TẠI ĐÂY: Lấy totalModules từ config.js thay vì TOTAL_MODULES cố định ---
+    const totalMod = lvl ? lvl.totalModules : 12; 
 
-  const list = document.getElementById("module-list");
-  list.innerHTML = "";
+    const percent = Math.round((unlockedCount / totalMod) * 100);
+    document.getElementById("modules-percent").textContent = percent + "%";
+    document.getElementById("modules-progress-fill").style.width = percent + "%";
 
-  for (let m = 1; m <= TOTAL_MODULES; m++) {
-    const isUnlocked = m <= unlockedCount;
-    const row = document.createElement("div");
-    row.className = "module-row rounded-lg px-4 py-3 flex items-center justify-between border border-[#E2E6EF] " +
-      (isUnlocked ? "unlocked" : "locked");
+    const list = document.getElementById("module-list");
+    list.innerHTML = "";
 
-    if (isUnlocked) {
-      row.innerHTML = `
-        <div>
-          <p class="font-medium text-sm">Module ${m}</p>
-          <p class="text-xs text-[var(--green)]">Đã mở khóa</p>
-        </div>
-        <button class="btn-gold text-xs font-medium px-3 py-1.5 rounded-md" data-module="${m}">Xem đáp án</button>
-      `;
-      row.querySelector("button").addEventListener("click", () => openModuleViewer(levelCode, m));
-    } else {
-      const unlockDate = computeUnlockDateForModule(activatedAt, m);
-      row.innerHTML = `
-        <div>
-          <p class="font-medium text-sm">Module ${m}</p>
-          <p class="text-xs">🔒 Sẽ tự động mở khóa vào ${formatDateVN(unlockDate)}</p>
-        </div>
-      `;
+    // --- CẬP NHẬT TẠI ĐÂY: Lặp theo totalMod ---
+    for (let m = 1; m <= totalMod; m++) {
+        const isUnlocked = m <= unlockedCount;
+        const row = document.createElement("div");
+        row.className = "module-row rounded-lg px-4 py-3 flex items-center justify-between border border-[#E2E6EF] " + 
+            (isUnlocked ? "unlocked" : "locked");
+
+        if (isUnlocked) {
+            row.innerHTML = `
+                <div>
+                    <p class="font-medium text-sm">Module ${m}</p>
+                    <p class="text-xs text-[var(--green)]">Đã mở khóa</p>
+                </div>
+                <button class="btn-gold text-xs font-medium px-3 py-1.5 rounded-md" data-module="${m}">Xem đáp án</button>
+            `;
+            row.querySelector("button").addEventListener("click", () => openModuleViewer(levelCode, m));
+        } else {
+            const unlockDate = computeUnlockDateForModule(activatedAt, m);
+            row.innerHTML = `
+                <div>
+                    <p class="font-medium text-sm">Module ${m}</p>
+                    <p class="text-xs">🔒 Sẽ tự động mở khóa vào ${formatDateVN(unlockDate)}</p>
+                </div>
+            `;
+        }
+        list.appendChild(row);
     }
-    list.appendChild(row);
-  }
 }
 
 // =====================================================================
