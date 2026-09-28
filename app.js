@@ -37,11 +37,11 @@ function getOrCreateDeviceId() {
 //   - Ngày kích hoạt: mở ngay 2 Module.
 //   - Sau mỗi 7 ngày (168 giờ) trọn vẹn: mở thêm 2 Module.
 //   - Tối đa 10 Module.
-function computeUnlockedCount(activatedAtDate) {
-  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-  const weeksPassed = Math.floor((Date.now() - activatedAtDate.getTime()) / msPerWeek);
-  const count = (weeksPassed + 1) * 2;
-  return Math.min(10, count);
+function computeUnlockedCount(activatedAtDate, maxModules = 28) {
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    const weeksPassed = Math.floor((Date.now() - activatedAtDate.getTime()) / msPerWeek);
+    const count = (weeksPassed + 1) * 2;
+    return Math.min(maxModules, count); // <--- Đã linh hoạt theo từng Level
 }
 
 // Tính ngày mà 1 Module cụ thể (1-10) sẽ được mở khóa, dựa trên activated_at.
@@ -304,10 +304,6 @@ async function submitKey() {
 }
 
 // =====================================================================
-// MÀN HÌNH DANH SÁCH 10 MODULE CỦA 1 LEVEL
-// =====================================================================
-
-// =====================================================================
 // MÀN HÌNH DANH SÁCH MODULE CỦA 1 LEVEL
 // =====================================================================
 
@@ -322,11 +318,9 @@ function showModulesScreen(levelCode) {
     document.getElementById("modules-subtitle").textContent = 
         `Kích hoạt ngày ${formatDateVN(activatedAt)}. Module mới tự động mở mỗi 7 ngày.`;
 
-    const unlockedCount = computeUnlockedCount(activatedAt);
-    
-    // --- CẬP NHẬT TẠI ĐÂY: Lấy totalModules từ config.js thay vì TOTAL_MODULES cố định ---
-    const totalMod = lvl ? lvl.totalModules : 12; 
-
+// --- CẬP NHẬT: Lấy totalModules từ config.js ---
+const totalMod = lvl ? lvl.totalModules : 28;
+const unlockedCount = computeUnlockedCount(activatedAt, totalMod);
     const percent = Math.round((unlockedCount / totalMod) * 100);
     document.getElementById("modules-percent").textContent = percent + "%";
     document.getElementById("modules-progress-fill").style.width = percent + "%";
