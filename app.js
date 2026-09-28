@@ -328,32 +328,63 @@ const unlockedCount = computeUnlockedCount(activatedAt, totalMod);
     const list = document.getElementById("module-list");
     list.innerHTML = "";
 
-    // --- CẬP NHẬT TẠI ĐÂY: Lặp theo totalMod ---
     for (let m = 1; m <= totalMod; m++) {
-        const isUnlocked = m <= unlockedCount;
-        const row = document.createElement("div");
-        row.className = "module-row rounded-lg px-4 py-3 flex items-center justify-between border border-[#E2E6EF] " + 
+    const isUnlocked = m <= unlockedCount;
+    
+    // 1. Tạo hàng Module bình thường
+    const row = document.createElement("div");
+    row.className = "module-row rounded-lg px-4 py-3 flex items-center justify-between border border-[#E2E6EF] " + 
+        (isUnlocked ? "unlocked" : "locked");
+
+    if (isUnlocked) {
+        row.innerHTML = `
+            <div>
+                <p class="font-medium text-sm">Module ${m}</p>
+                <p class="text-xs text-[var(--green)]">Đã mở khóa</p>
+            </div>
+            <button class="btn-gold text-xs font-medium px-3 py-1.5 rounded-md" data-module="${m}">Xem đáp án</button>
+        `;
+        row.querySelector("button").addEventListener("click", () => openModuleViewer(levelCode, m));
+    } else {
+        const unlockDate = computeUnlockDateForModule(activatedAt, m);
+        row.innerHTML = `
+            <div>
+                <p class="font-medium text-sm">Module ${m}</p>
+                <p class="text-xs">🔒 Sẽ tự động mở khóa vào ${formatDateVN(unlockDate)}</p>
+            </div>
+        `;
+    }
+    list.appendChild(row);
+
+    // 2. Tự động chèn 1 dòng Exam Practice sau mỗi 3 Module
+    if (m % 3 === 0) {
+        const examNum = m / 3;
+        const startUnit = m - 2;
+        const endUnit = m;
+        
+        const examRow = document.createElement("div");
+        examRow.className = "module-row exam-row rounded-lg px-4 py-3 flex items-center justify-between border border-amber-300 bg-amber-50/40 " + 
             (isUnlocked ? "unlocked" : "locked");
 
         if (isUnlocked) {
-            row.innerHTML = `
+            examRow.innerHTML = `
                 <div>
-                    <p class="font-medium text-sm">Module ${m}</p>
+                    <p class="font-semibold text-sm text-amber-900">📝 Exam Practice ${examNum}: Units ${startUnit}-${endUnit}</p>
                     <p class="text-xs text-[var(--green)]">Đã mở khóa</p>
                 </div>
-                <button class="btn-gold text-xs font-medium px-3 py-1.5 rounded-md" data-module="${m}">Xem đáp án</button>
+                <button class="btn-gold text-xs font-medium px-3 py-1.5 rounded-md" data-exam="${examNum}">Xem đáp án</button>
             `;
-            row.querySelector("button").addEventListener("click", () => openModuleViewer(levelCode, m));
+            examRow.querySelector("button").addEventListener("click", () => openModuleViewer(levelCode, `exam_${examNum}`));
         } else {
             const unlockDate = computeUnlockDateForModule(activatedAt, m);
-            row.innerHTML = `
+            examRow.innerHTML = `
                 <div>
-                    <p class="font-medium text-sm">Module ${m}</p>
-                    <p class="text-xs">🔒 Sẽ tự động mở khóa vào ${formatDateVN(unlockDate)}</p>
+                    <p class="font-semibold text-sm text-amber-900">📝 Exam Practice ${examNum}: Units ${startUnit}-${endUnit}</p>
+                    <p class="text-xs">🔒 Mở khóa cùng Module ${m} vào ${formatDateVN(unlockDate)}</p>
                 </div>
             `;
         }
-        list.appendChild(row);
+        list.appendChild(examRow);
     }
 }
 
