@@ -268,29 +268,124 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // "code" là giá trị lưu trong database (không dấu, không ký tự đặc biệt).
 // "label" là chữ hiển thị cho người dùng.
 const LEVELS = [
-  { code: "A1_1",    label: "A1.1",  subtitle: "Beginners" },
-  { code: "A1_2",    label: "A1.2",  subtitle: "Elementary" },
-  { code: "A2",      label: "A2",    subtitle: "Pre-Intermediate" },
-  { code: "B1",      label: "B1",    subtitle: "Intermediate" },
-  { code: "B1_PLUS", label: "B1+",   subtitle: "Upper Intermediate" },
-  { code: "B2",      label: "B2",    subtitle: "Upper-Intermediate+" },
-  { code: "C1C2",    label: "C1/C2", subtitle: "Advanced" },
+  { code: "A1_1", label: "A1.1", subtitle: "Beginners", totalModules: 24 },
+  { code: "A1_2", label: "A1.2", subtitle: "Elementary", totalModules: 28 },
+  { code: "A2", label: "A2", subtitle: "Pre-Intermediate", totalModules: 28 },
+  { code: "B1", label: "B1", subtitle: "Intermediate", totalModules: 26 },
+  { code: "B1_PLUS", label: "B1+", subtitle: "Upper Intermediate", totalModules: 22 },
+  { code: "B2", label: "B2", subtitle: "Upper-Intermediate+", totalModules: 21 },
+  { code: "C1C2", label: "C1/C2", subtitle: "Advanced", totalModules: 21 },
 ];
+/// Cấu hình khung chương trình chi tiết cho từng Level
+const LEVEL_CONFIGS = {
+  // 1. Level A1.1 (Beginners)
+  "A1_1": {
+    hasHello: true,
+    totalUnits: 24,
+    revisions: [
+      { id: "rev_1_5", label: "Revision: Units 1-5" },
+      { id: "rev_6_9", label: "Revision: Units 6-9" },
+      { id: "rev_10_12", label: "Revision: Units 10-12" },
+      { id: "rev_13_14", label: "Revision: Units 13-14" },
+      { id: "rev_15_18", label: "Revision: Units 15-18" },
+      { id: "rev_19_21", label: "Revision: Units 19-21" },
+      { id: "rev_22_24", label: "Revision: Units 22-24" },
+      { id: "rev_final", label: "Revision: Units 1-24 (Final)" }
+    ],
+    exams: []
+  },
 
-// Thêm danh sách Module bao gồm Module Hello (Mã '0') và các Module từ 1 đến 10
-const MODULE_LIST = [
-  { value: 100, label: "Module Hello" },
-  { value: 1, label: "Module 1" },
-  { value: 2, label: "Module 2" },
-  { value: 3, label: "Module 3" },
-  { value: 4, label: "Module 4" },
-  { value: 5, label: "Module 5" },
-  { value: 6, label: "Module 6" },
-  { value: 7, label: "Module 7" },
-  { value: 8, label: "Module 8" },
-  { value: 9, label: "Module 9" },
-  { value: 10, label: "Module 10" }
-];
+  // 2. Level A1.2 (Elementary)
+  "A1_2": {
+    hasHello: true,
+    totalUnits: 28,
+    revisions: [
+      { id: "rev_1_4", label: "Revision: Units 1-4" },
+      { id: "rev_5_8", label: "Revision: Units 5-8" },
+      { id: "rev_9_12", label: "Revision: Units 9-12" },
+      { id: "rev_13_16", label: "Revision: Units 13-16" },
+      { id: "rev_17_20", label: "Revision: Units 17-20" },
+      { id: "rev_21_24", label: "Revision: Units 21-24" },
+      { id: "rev_25_26", label: "Revision: Units 25-26" },
+      { id: "rev_27_28", label: "Revision: Units 27-28" },
+      { id: "rev_final", label: "Revision: Units 1-28 (Final)" }
+    ],
+    exams: []
+  },
+
+  // 3. Level A2 (Pre-Intermediate)
+  "A2": {
+    hasHello: false,
+    totalUnits: 26,
+    revisions: [
+      { id: "rev_1_3", label: "Revision: Units 1-3" },
+      { id: "rev_4_5", label: "Revision: Units 4-5" },
+      { id: "rev_6_7", label: "Revision: Units 6-7" },
+      { id: "rev_8_9", label: "Revision: Units 8-9" },
+      { id: "rev_10_11", label: "Revision: Units 10-11" },
+      { id: "rev_12_13", label: "Revision: Units 12-13" },
+      { id: "rev_14_15", label: "Revision: Units 14-15" },
+      { id: "rev_16_17", label: "Revision: Units 16-17" },
+      { id: "rev_18_19", label: "Revision: Units 18-19" },
+      { id: "rev_20_21", label: "Revision: Units 20-21" },
+      { id: "rev_22_23", label: "Revision: Units 22-23" },
+      { id: "rev_24_26", label: "Revision: Units 24-26" },
+      { id: "rev_final", label: "Revision: Units 1-26 (Final)" }
+    ],
+    exams: [
+      { id: "exam_1", label: "📝 Exam Practice 1: Units 1-7" },
+      { id: "exam_2", label: "📝 Exam Practice 2: Units 8-13" },
+      { id: "exam_3", label: "📝 Exam Practice 3: Units 14-19" },
+      { id: "exam_4", label: "📝 Exam Practice 4: Units 20-26" }
+    ]
+  },
+
+  // 4. Level B1 (Intermediate)
+  "B1": {
+    hasHello: false,
+    totalUnits: 21,
+    revisions: [
+      { id: "rev_1_2", label: "Revision: Units 1-2" },
+      { id: "rev_3_4", label: "Revision: Units 3-4" },
+      { id: "rev_5_6", label: "Revision: Units 5-6" },
+      { id: "rev_7_8", label: "Revision: Units 7-8" },
+      { id: "rev_9_10", label: "Revision: Units 9-10" },
+      { id: "rev_11_12", label: "Revision: Units 11-12" },
+      { id: "rev_13_15", label: "Revision: Units 13-15" },
+      { id: "rev_16_17", label: "Revision: Units 16-17" },
+      { id: "rev_18_19", label: "Revision: Units 18-19" },
+      { id: "rev_20_21", label: "Revision: Units 20-21" },
+      { id: "rev_final", label: "Revision: Units 1-21 (Final)" }
+    ],
+    exams: [
+      { id: "exam_1", label: "📝 Exam Practice 1: Units 1-4" },
+      { id: "exam_2", label: "📝 Exam Practice 2: Units 5-8" },
+      { id: "exam_3", label: "📝 Exam Practice 3: Units 9-12" },
+      { id: "exam_4", label: "📝 Exam Practice 4: Units 13-17" },
+      { id: "exam_5", label: "📝 Exam Practice 5: Units 18-21" }
+    ]
+  },
+
+  // 5. Level B1+, B2, C1/C2 (Mỗi Unit có 1 Revision riêng)
+  "B1_PLUS": {
+    hasHello: false,
+    totalUnits: 21,
+    perUnitRevision: true,
+    exams: [
+      { id: "exam_1", label: "📝 Exam Practice 1: Units 1-3" },
+      { id: "exam_2", label: "📝 Exam Practice 2: Units 4-6" },
+      { id: "exam_3", label: "📝 Exam Practice 3: Units 7-9" },
+      { id: "exam_4", label: "📝 Exam Practice 4: Units 10-12" },
+      { id: "exam_5", label: "📝 Exam Practice 5: Units 13-15" },
+      { id: "exam_6", label: "📝 Exam Practice 6: Units 16-18" },
+      { id: "exam_7", label: "📝 Exam Practice 7: Units 19-21" }
+    ]
+  }
+};
+
+// Cấu trúc B2 và C1/C2 giống B1+
+LEVEL_CONFIGS["B2"] = LEVEL_CONFIGS["B1_PLUS"];
+LEVEL_CONFIGS["C1C2"] = LEVEL_CONFIGS["B1_PLUS"];
 let supabaseClient = null;   // sẽ được gán trong mmBoot()
 let mmBootError = null;      // lưu thông báo lỗi khởi động (nếu có)
 
