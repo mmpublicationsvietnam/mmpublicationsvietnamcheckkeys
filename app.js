@@ -7,7 +7,138 @@
 let currentUser = null;              // { id, email }
 let unlockedLevelsMap = {};          // { level_code: activated_at (Date) }
 let currentLevelCode = null;         // level đang xem trong màn hình module
+// ---------- CẤU HÌNH KHUNG CHƯƠNG TRÌNH DÙNG CHUNG ----------
+const LEVEL_CONFIGS = {
+  "A1_1": {
+    hasHello: true,
+    totalUnits: 24,
+    revisions: [
+      { id: "rev_1_5", label: "Revision: Units 1-5" },
+      { id: "rev_6_9", label: "Revision: Units 6-9" },
+      { id: "rev_10_12", label: "Revision: Units 10-12" },
+      { id: "rev_13_14", label: "Revision: Units 13-14" },
+      { id: "rev_15_18", label: "Revision: Units 15-18" },
+      { id: "rev_19_21", label: "Revision: Units 19-21" },
+      { id: "rev_22_24", label: "Revision: Units 22-24" },
+      { id: "rev_final", label: "Revision: Units 1-24 (Final)" }
+    ],
+    exams: []
+  },
+  "A1_2": {
+    hasHello: true,
+    totalUnits: 28,
+    revisions: [
+      { id: "rev_1_4", label: "Revision: Units 1-4" },
+      { id: "rev_5_8", label: "Revision: Units 5-8" },
+      { id: "rev_9_12", label: "Revision: Units 9-12" },
+      { id: "rev_13_16", label: "Revision: Units 13-16" },
+      { id: "rev_17_20", label: "Revision: Units 17-20" },
+      { id: "rev_21_24", label: "Revision: Units 21-24" },
+      { id: "rev_25_26", label: "Revision: Units 25-26" },
+      { id: "rev_27_28", label: "Revision: Units 27-28" },
+      { id: "rev_final", label: "Revision: Units 1-28 (Final)" }
+    ],
+    exams: []
+  },
+  "A2": {
+    hasHello: false,
+    totalUnits: 26,
+    revisions: [
+      { id: "rev_1_3", label: "Revision: Units 1-3" },
+      { id: "rev_4_5", label: "Revision: Units 4-5" },
+      { id: "rev_6_7", label: "Revision: Units 6-7" },
+      { id: "rev_8_9", label: "Revision: Units 8-9" },
+      { id: "rev_10_11", label: "Revision: Units 10-11" },
+      { id: "rev_12_13", label: "Revision: Units 12-13" },
+      { id: "rev_14_15", label: "Revision: Units 14-15" },
+      { id: "rev_16_17", label: "Revision: Units 16-17" },
+      { id: "rev_18_19", label: "Revision: Units 18-19" },
+      { id: "rev_20_21", label: "Revision: Units 20-21" },
+      { id: "rev_22_23", label: "Revision: Units 22-23" },
+      { id: "rev_24_26", label: "Revision: Units 24-26" },
+      { id: "rev_final", label: "Revision: Units 1-26 (Final)" }
+    ],
+    exams: [
+      { id: "exam_1", label: "📝 Exam Practice 1: Units 1-7" },
+      { id: "exam_2", label: "📝 Exam Practice 2: Units 8-13" },
+      { id: "exam_3", label: "📝 Exam Practice 3: Units 14-19" },
+      { id: "exam_4", label: "📝 Exam Practice 4: Units 20-26" }
+    ]
+  },
+  "B1": {
+    hasHello: false,
+    totalUnits: 21,
+    revisions: [
+      { id: "rev_1_2", label: "Revision: Units 1-2" },
+      { id: "rev_3_4", label: "Revision: Units 3-4" },
+      { id: "rev_5_6", label: "Revision: Units 5-6" },
+      { id: "rev_7_8", label: "Revision: Units 7-8" },
+      { id: "rev_9_10", label: "Revision: Units 9-10" },
+      { id: "rev_11_12", label: "Revision: Units 11-12" },
+      { id: "rev_13_15", label: "Revision: Units 13-15" },
+      { id: "rev_16_17", label: "Revision: Units 16-17" },
+      { id: "rev_18_19", label: "Revision: Units 18-19" },
+      { id: "rev_20_21", label: "Revision: Units 20-21" },
+      { id: "rev_final", label: "Revision: Units 1-21 (Final)" }
+    ],
+    exams: [
+      { id: "exam_1", label: "📝 Exam Practice 1: Units 1-4" },
+      { id: "exam_2", label: "📝 Exam Practice 2: Units 5-8" },
+      { id: "exam_3", label: "📝 Exam Practice 3: Units 9-12" },
+      { id: "exam_4", label: "📝 Exam Practice 4: Units 13-17" },
+      { id: "exam_5", label: "📝 Exam Practice 5: Units 18-21" }
+    ]
+  },
+  "B1_PLUS": {
+    hasHello: false,
+    totalUnits: 21,
+    perUnitRevision: true,
+    exams: [
+      { id: "exam_1", label: "📝 Exam Practice 1: Units 1-3" },
+      { id: "exam_2", label: "📝 Exam Practice 2: Units 4-6" },
+      { id: "exam_3", label: "📝 Exam Practice 3: Units 7-9" },
+      { id: "exam_4", label: "📝 Exam Practice 4: Units 10-12" },
+      { id: "exam_5", label: "📝 Exam Practice 5: Units 13-15" },
+      { id: "exam_6", label: "📝 Exam Practice 6: Units 16-18" },
+      { id: "exam_7", label: "📝 Exam Practice 7: Units 19-21" }
+    ]
+  }
+};
+LEVEL_CONFIGS["B2"] = LEVEL_CONFIGS["B1_PLUS"];
+LEVEL_CONFIGS["C1C2"] = LEVEL_CONFIGS["B1_PLUS"];
 
+// Hàm sinh danh sách đầy đủ các bài theo đúng thứ tự hiển thị của từng Level
+function getLevelItemList(levelCode) {
+  const config = LEVEL_CONFIGS[levelCode];
+  if (!config) return [];
+
+  const items = [];
+
+  // 1. Thêm Module Hello nếu có
+  if (config.hasHello) {
+    items.push({ id: "0", title: "Module Hello", type: "unit" });
+  }
+
+  // 2. Thêm các Unit (Module 1, Module 2,...)
+  for (let u = 1; u <= config.totalUnits; u++) {
+    items.push({ id: String(u), title: `Module ${u}`, type: "unit" });
+    if (config.perUnitRevision) {
+      items.push({ id: `rev_unit_${u}`, title: `Revision: Unit ${u}`, type: "revision" });
+    }
+  }
+
+  // 3. Thêm các bài Revision nhóm
+  if (config.revisions) {
+    config.revisions.forEach(r => items.push({ id: r.id, title: r.label, type: "revision" }));
+  }
+
+  // 4. Thêm các bài Exam Practice
+  if (config.exams) {
+    config.exams.forEach(e => items.push({ id: e.id, title: e.label, type: "exam" }));
+  }
+
+  return items;
+}
 // =====================================================================
 // TIỆN ÍCH CHUNG
 // =====================================================================
@@ -32,22 +163,17 @@ function getOrCreateDeviceId() {
   return id;
 }
 
-// Tính số Module đã được mở khóa dựa trên thời điểm kích hoạt (activated_at).
-// Công thức phải khớp 100% với hàm SQL get_unlocked_module_count trong schema.sql:
-//   - Ngày kích hoạt: mở ngay 2 Module.
-//   - Sau mỗi 7 ngày (168 giờ) trọn vẹn: mở thêm 2 Module.
-//   - Tối đa 10 Module.
-function computeUnlockedCount(activatedAtDate, maxModules = 28) {
-    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-    const weeksPassed = Math.floor((Date.now() - activatedAtDate.getTime()) / msPerWeek);
-    const count = (weeksPassed + 1) * 2;
-    return Math.min(maxModules, count); // <--- Đã linh hoạt theo từng Level
+// Tính số mục (items) đã mở khóa dựa theo chỉ số số lượng tổng
+function computeUnlockedCount(activatedAtDate, totalItemsCount = 28) {
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const weeksPassed = Math.floor((Date.now() - activatedAtDate.getTime()) / msPerWeek);
+  const count = (weeksPassed + 1) * 2; // Tự động mở 2 mục mỗi tuần
+  return Math.min(totalItemsCount, count);
 }
 
-// Tính ngày mà 1 Module cụ thể (1-10) sẽ được mở khóa, dựa trên activated_at.
-// Module lẻ/chẵn đi theo cặp: (1,2) mở ở tuần 1, (3,4) ở tuần 2, v.v.
-function computeUnlockDateForModule(activatedAtDate, moduleNumber) {
-  const weekIndex = Math.ceil(moduleNumber / 2); // 1..5
+// Tính ngày mở khóa dựa theo THỨ TỰ (itemIndex: 0, 1, 2...) thay vì ép kiểu số moduleNumber
+function computeUnlockDateForModule(activatedAtDate, itemIndex) {
+  const weekIndex = Math.floor(itemIndex / 2) + 1; // index 0,1 -> tuần 1 | 2,3 -> tuần 2
   const offsetDays = (weekIndex - 1) * 7;
   const d = new Date(activatedAtDate.getTime());
   d.setDate(d.getDate() + offsetDays);
@@ -226,8 +352,10 @@ function renderLevelGrid() {
     card.className = "level-card rounded-xl p-4 cursor-pointer" + (isUnlocked ? "" : " locked");
 
     if (isUnlocked) {
-      const unlockedCount = computeUnlockedCount(activatedAt);
-      const percent = Math.round((unlockedCount / TOTAL_MODULES) * 100);
+      const items = getLevelItemList(lvl.code);
+      const unlockedCount = computeUnlockedCount(activatedAt, items.length);
+      const percent = items.length > 0 ? Math.round((unlockedCount / items.length) * 100) : 0;
+
       card.innerHTML = `
         <div class="flex items-center justify-between mb-2">
           <p class="font-display text-lg font-bold">${lvl.label} <span class="text-xs font-normal text-[#6B7280]">(${lvl.subtitle})</span></p>
@@ -236,7 +364,7 @@ function renderLevelGrid() {
         <div class="progress-track h-2 rounded-full overflow-hidden mb-2">
           <div class="progress-fill h-full" style="width:${percent}%"></div>
         </div>
-        <p class="text-xs text-[#6B7280]">Đang mở đến Module ${unlockedCount}/${TOTAL_MODULES} &middot; ${percent}% hoàn thành</p>
+        <p class="text-xs text-[#6B7280]">Đang mở đến ${unlockedCount}/${items.length} bài &middot; ${percent}% hoàn thành</p>
       `;
       card.addEventListener("click", () => showModulesScreen(lvl.code));
     } else {
@@ -308,96 +436,70 @@ async function submitKey() {
 // =====================================================================
 
 function showModulesScreen(levelCode) {
-    currentLevelCode = levelCode;
-    const activatedAt = unlockedLevelsMap[levelCode];
-    const lvl = LEVELS.find((l) => l.code === levelCode);
+  currentLevelCode = levelCode;
+  const activatedAt = unlockedLevelsMap[levelCode];
+  const lvl = LEVELS.find((l) => l.code === levelCode);
 
-    document.getElementById("dashboard-screen").classList.add("hidden");
-    document.getElementById("modules-screen").classList.remove("hidden");
-    document.getElementById("modules-title").textContent = `${lvl.label} - ${lvl.subtitle}`;
-    document.getElementById("modules-subtitle").textContent = 
-        `Kích hoạt ngày ${formatDateVN(activatedAt)}. Module mới tự động mở mỗi 7 ngày.`;
+  document.getElementById("dashboard-screen").classList.add("hidden");
+  document.getElementById("modules-screen").classList.remove("hidden");
+  document.getElementById("modules-title").textContent = `${lvl.label} - ${lvl.subtitle}`;
+  document.getElementById("modules-subtitle").textContent = 
+    `Kích hoạt ngày ${formatDateVN(activatedAt)}. Bài mới tự động mở mỗi 7 ngày.`;
 
-// --- CẬP NHẬT: Lấy totalModules từ config.js ---
-const totalMod = lvl ? lvl.totalModules : 28;
-const unlockedCount = computeUnlockedCount(activatedAt, totalMod);
-    const percent = Math.round((unlockedCount / totalMod) * 100);
-    document.getElementById("modules-percent").textContent = percent + "%";
-    document.getElementById("modules-progress-fill").style.width = percent + "%";
+  // Lấy danh sách item động theo LEVEL_CONFIGS
+  const items = getLevelItemList(levelCode);
+  const unlockedCount = computeUnlockedCount(activatedAt, items.length);
+  const percent = items.length > 0 ? Math.round((unlockedCount / items.length) * 100) : 0;
 
-    const list = document.getElementById("module-list");
-    list.innerHTML = "";
+  document.getElementById("modules-percent").textContent = percent + "%";
+  document.getElementById("modules-progress-fill").style.width = percent + "%";
 
-    for (let m = 1; m <= totalMod; m++) {
-    const isUnlocked = m <= unlockedCount;
-    
-    // 1. Tạo hàng Module bình thường
+  const list = document.getElementById("module-list");
+  list.innerHTML = "";
+
+  // Duyệt qua từng item để render đúng thứ tự
+  items.forEach((item, index) => {
+    const isUnlocked = index < unlockedCount;
     const row = document.createElement("div");
-    row.className = "module-row rounded-lg px-4 py-3 flex items-center justify-between border border-[#E2E6EF] " + 
-        (isUnlocked ? "unlocked" : "locked");
+
+    // Tùy chỉnh màu sắc cho bài Exam / Revision / Unit
+    let bgStyle = "border border-[#E2E6EF]";
+    if (item.type === "exam") {
+      bgStyle = "border border-amber-300 bg-amber-50/40";
+    } else if (item.type === "revision") {
+      bgStyle = "border border-blue-200 bg-blue-50/30";
+    }
+
+    row.className = `module-row rounded-lg px-4 py-3 flex items-center justify-between ${bgStyle} ${isUnlocked ? "unlocked" : "locked"}`;
 
     if (isUnlocked) {
-        row.innerHTML = `
-            <div>
-                <p class="font-medium text-sm">Module ${m}</p>
-                <p class="text-xs text-[var(--green)]">Đã mở khóa</p>
-            </div>
-            <button class="btn-gold text-xs font-medium px-3 py-1.5 rounded-md" data-module="${m}">Xem đáp án</button>
-        `;
-        row.querySelector("button").addEventListener("click", () => openModuleViewer(levelCode, m));
+      row.innerHTML = `
+        <div>
+          <p class="font-medium text-sm ${item.type === 'exam' ? 'text-amber-900 font-semibold' : ''}">${item.title}</p>
+          <p class="text-xs text-[var(--green)]">Đã mở khóa</p>
+        </div>
+        <button class="btn-gold text-xs font-medium px-3 py-1.5 rounded-md">Xem đáp án</button>
+      `;
+      row.querySelector("button").addEventListener("click", () => openModuleViewer(levelCode, item.id, item.title));
     } else {
-        const unlockDate = computeUnlockDateForModule(activatedAt, m);
-        row.innerHTML = `
-            <div>
-                <p class="font-medium text-sm">Module ${m}</p>
-                <p class="text-xs">🔒 Sẽ tự động mở khóa vào ${formatDateVN(unlockDate)}</p>
-            </div>
-        `;
+      const unlockDate = computeUnlockDateForModule(activatedAt, index);
+      row.innerHTML = `
+        <div>
+          <p class="font-medium text-sm ${item.type === 'exam' ? 'text-amber-900 font-semibold' : ''}">${item.title}</p>
+          <p class="text-xs text-[#8890A0]">🔒 Tự động mở khóa vào ${formatDateVN(unlockDate)}</p>
+        </div>
+      `;
     }
     list.appendChild(row);
-
-    // 2. Tự động chèn 1 dòng Exam Practice sau mỗi 3 Module
-    if (m % 3 === 0) {
-        const examNum = m / 3;
-        const startUnit = m - 2;
-        const endUnit = m;
-        
-        const examRow = document.createElement("div");
-        examRow.className = "module-row exam-row rounded-lg px-4 py-3 flex items-center justify-between border border-amber-300 bg-amber-50/40 " + 
-            (isUnlocked ? "unlocked" : "locked");
-
-        if (isUnlocked) {
-            examRow.innerHTML = `
-                <div>
-                    <p class="font-semibold text-sm text-amber-900">📝 Exam Practice ${examNum}: Units ${startUnit}-${endUnit}</p>
-                    <p class="text-xs text-[var(--green)]">Đã mở khóa</p>
-                </div>
-                <button class="btn-gold text-xs font-medium px-3 py-1.5 rounded-md" data-exam="${examNum}">Xem đáp án</button>
-            `;
-            examRow.querySelector("button").addEventListener("click", () => openModuleViewer(levelCode, `exam_${examNum}`));
-        } else {
-            const unlockDate = computeUnlockDateForModule(activatedAt, m);
-            examRow.innerHTML = `
-                <div>
-                    <p class="font-semibold text-sm text-amber-900">📝 Exam Practice ${examNum}: Units ${startUnit}-${endUnit}</p>
-                    <p class="text-xs">🔒 Mở khóa cùng Module ${m} vào ${formatDateVN(unlockDate)}</p>
-                </div>
-            `;
-        }
-        list.appendChild(examRow);
-    }
+  });
 }
 
-// =====================================================================
-// MODAL XEM ĐÁP ÁN (kèm watermark động)
-// =====================================================================
-
-async function openModuleViewer(levelCode, moduleNumber) {
+async function openModuleViewer(levelCode, moduleNumber, displayTitle = "") {
   const { data, error } = await supabaseClient
     .from("module_content")
     .select("title, content")
     .eq("level_code", levelCode)
-    .eq("module_number", moduleNumber)
+    .eq("module_number", String(moduleNumber)) // Ép kiểu về String để nhận mã chữ/số
     .maybeSingle();
 
   if (error) {
@@ -406,12 +508,14 @@ async function openModuleViewer(levelCode, moduleNumber) {
   }
 
   const lvl = LEVELS.find((l) => l.code === levelCode);
+  const titleText = displayTitle || `Module ${moduleNumber}`;
+  
   document.getElementById("viewer-title").textContent =
-    data ? `${lvl.label} - Module ${moduleNumber}: ${data.title || ""}` : `${lvl.label} - Module ${moduleNumber}`;
+    data && data.title ? `${lvl.label} - ${titleText}: ${data.title}` : `${lvl.label} - ${titleText}`;
 
   const contentEl = document.getElementById("viewer-content");
   if (data && data.content) {
-    contentEl.innerHTML = data.content; // Nội dung do Admin nhập, được tin tưởng (không phải input người dùng)
+    contentEl.innerHTML = data.content;
   } else {
     contentEl.innerHTML = `<p class="text-[#8890A0]">Nội dung đang được cập nhật, vui lòng quay lại sau.</p>`;
   }
@@ -421,7 +525,6 @@ async function openModuleViewer(levelCode, moduleNumber) {
   document.getElementById("viewer-modal").classList.remove("hidden");
   document.getElementById("viewer-modal").classList.add("flex");
 }
-
 // Phủ nhiều dòng watermark chứa email người dùng để răn đe việc chụp/quay màn hình
 function renderWatermark() {
   const layer = document.getElementById("watermark-layer");
