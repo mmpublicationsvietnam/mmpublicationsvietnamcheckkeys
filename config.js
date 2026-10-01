@@ -6,7 +6,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // Khởi tạo client Supabase
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+window.supabaseClient = supabaseClient;
 // Danh sách 7 Level chuẩn gốc của dự án
 const LEVELS = [
   { code: "A1_1", label: "A1.1", subtitle: "Beginners" },
