@@ -591,18 +591,34 @@ function mmBoot() {
     return false;
   }
 
-  // Kiểm tra 2: đã thay placeholder bằng thông tin thật chưa?
-  if (SUPABASE_URL.includes("YOUR-PROJECT-REF") || SUPABASE_ANON_KEY.includes("YOUR-ANON")) {
-    mmBootError = "CHƯA CẤU HÌNH: hãy mở file HTML này, tìm dòng SUPABASE_URL và "
-                + "SUPABASE_ANON_KEY ở gần cuối file rồi dán thông tin project Supabase của bạn vào.";
-    mmShowBanner(mmBootError);
-    return false;
+  // Kiểm tra 2: Kiểm tra nếu đã có kết nối từ config.js
+  if (window.supabaseClient) {
+    supabaseClient = window.supabaseClient;
+    return true;
+  }
+
+  // Kiểm tra 3: Nếu dùng biến cấu hình lẻ
+  if (typeof SUPABASE_URL !== "undefined" && typeof SUPABASE_ANON_KEY !== "undefined") {
+    if (SUPABASE_URL.includes("YOUR-PROJECT-REF") || SUPABASE_ANON_KEY.includes("YOUR-ANON")) {
+      mmBootError = "CHƯA CẤU HÌNH: Hãy kiểm tra thông tin SUPABASE_URL và SUPABASE_ANON_KEY.";
+      mmShowBanner(mmBootError);
+      return false;
+    }
   }
 
   // Kiểm tra 3: khởi tạo client, bắt mọi lỗi phát sinh
   try {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    return true;
+    if (window.supabaseClient) {
+      supabaseClient = window.supabaseClient;
+      return true;
+    }
+    if (typeof SUPABASE_URL !== "undefined" && typeof SUPABASE_ANON_KEY !== "undefined") {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      return true;
+    }
+    mmBootError = "Chưa tìm thấy thông tin cấu hình SUPABASE_URL / SUPABASE_ANON_KEY.";
+    mmShowBanner(mmBootError);
+    return false;
   } catch (err) {
     mmBootError = "Lỗi khởi tạo kết nối Supabase: " + err.message;
     mmShowBanner(mmBootError);
