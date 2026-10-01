@@ -583,29 +583,34 @@ function mmRequireClient(errorEl) {
 }
 
 function mmBoot() {
-  // Kiểm tra 1: thư viện supabase-js đã tải được từ CDN chưa?
+  // 1. Kiểm tra thư viện Supabase CDN
   if (!window.supabase || typeof window.supabase.createClient !== "function") {
-    mmBootError = "Không tải được thư viện Supabase từ CDN. Vui lòng kiểm tra kết nối mạng, "
-                + "hoặc mở trang qua http(s):// thay vì mở trực tiếp bằng file://";
+    mmBootError = "Không tải được thư viện Supabase từ CDN. Vui lòng kiểm tra kết nối mạng.";
     mmShowBanner(mmBootError);
     return false;
   }
 
-  // Kiểm tra 2: Kiểm tra nếu đã có kết nối từ config.js
+  // 2. Nhận Supabase Client từ config.js (hoặc tự khởi tạo nếu chưa có)
   if (window.supabaseClient) {
     supabaseClient = window.supabaseClient;
     return true;
-  }
-
-  // Kiểm tra 3: Nếu dùng biến cấu hình lẻ
+  } 
+  
   if (typeof SUPABASE_URL !== "undefined" && typeof SUPABASE_ANON_KEY !== "undefined") {
-    if (SUPABASE_URL.includes("YOUR-PROJECT-REF") || SUPABASE_ANON_KEY.includes("YOUR-ANON")) {
-      mmBootError = "CHƯA CẤU HÌNH: Hãy kiểm tra thông tin SUPABASE_URL và SUPABASE_ANON_KEY.";
+    try {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      window.supabaseClient = supabaseClient;
+      return true;
+    } catch (err) {
+      mmBootError = "Lỗi khởi tạo kết nối Supabase: " + err.message;
       mmShowBanner(mmBootError);
       return false;
     }
   }
 
+  mmBootError = "Chưa kết nối được tới Supabase (thiếu cấu hình URL/Key).";
+  return false;
+}
   // Kiểm tra 3: khởi tạo client, bắt mọi lỗi phát sinh
   try {
     if (window.supabaseClient) {
