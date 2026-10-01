@@ -611,25 +611,7 @@ function mmBoot() {
   mmBootError = "Chưa kết nối được tới Supabase (thiếu cấu hình URL/Key).";
   return false;
 }
-  // Kiểm tra 3: khởi tạo client, bắt mọi lỗi phát sinh
-  try {
-    if (window.supabaseClient) {
-      supabaseClient = window.supabaseClient;
-      return true;
-    }
-    if (typeof SUPABASE_URL !== "undefined" && typeof SUPABASE_ANON_KEY !== "undefined") {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      return true;
-    }
-    mmBootError = "Chưa tìm thấy thông tin cấu hình SUPABASE_URL / SUPABASE_ANON_KEY.";
-    mmShowBanner(mmBootError);
-    return false;
-  } catch (err) {
-    mmBootError = "Lỗi khởi tạo kết nối Supabase: " + err.message;
-    mmShowBanner(mmBootError);
-    return false;
-  }
-}
+
 
 /* ===== 2. CHỐNG SAO CHÉP / CHỐNG LEAK ===== */
 (function initAntiCopy() {
