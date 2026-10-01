@@ -545,7 +545,6 @@ const SERIES = [
   // },
 ];
 
-const TOTAL_MODULES = 10;
 
 let supabaseClient = null;   // sẽ được gán trong mmBoot()
 let mmBootError = null;      // lưu thông báo lỗi khởi động (nếu có)
@@ -686,17 +685,17 @@ function getOrCreateDeviceId() {
 //   - Ngày kích hoạt: mở ngay 2 Module.
 //   - Sau mỗi 7 ngày (168 giờ) trọn vẹn: mở thêm 2 Module.
 //   - Tối đa 10 Module.
-function computeUnlockedCount(activatedAtDate) {
+// Tính số bài đã được mở khóa dựa trên activated_at và tổng số bài của Level hiện tại
+function computeUnlockedCount(activatedAtDate, totalItems = 10) {
   const msPerWeek = 7 * 24 * 60 * 60 * 1000;
   const weeksPassed = Math.floor((Date.now() - activatedAtDate.getTime()) / msPerWeek);
-  const count = (weeksPassed + 1) * 2;
-  return Math.min(10, count);
+  const count = (weeksPassed + 1) * 2; // Mỗi tuần mở 2 bài
+  return Math.min(totalItems, count);  // Giới hạn theo tổng số bài thực tế của Level
 }
 
-// Tính ngày mà 1 Module cụ thể (1-10) sẽ được mở khóa, dựa trên activated_at.
-// Module lẻ/chẵn đi theo cặp: (1,2) mở ở tuần 1, (3,4) ở tuần 2, v.v.
-function computeUnlockDateForModule(activatedAtDate, moduleNumber) {
-  const weekIndex = Math.ceil(moduleNumber / 2); // 1..5
+// Tính ngày mà bài thứ itemIndex (1..N) sẽ được mở khóa
+function computeUnlockDateForModule(activatedAtDate, itemIndex) {
+  const weekIndex = Math.ceil(itemIndex / 2);
   const offsetDays = (weekIndex - 1) * 7;
   const d = new Date(activatedAtDate.getTime());
   d.setDate(d.getDate() + offsetDays);
@@ -1128,18 +1127,25 @@ function showModulesScreen(levelCode) {
   document.getElementById("modules-screen").classList.remove("hidden");
   document.getElementById("modules-title").textContent = `${lvl.label} - ${lvl.subtitle}`;
   document.getElementById("modules-subtitle").textContent =
-    `Kích hoạt ngày ${formatDateVN(activatedAt)}. Module mới tự động mở mỗi 7 ngày.`;
+    `Kích hoạt ngày ${formatDateVN(activatedAt)}. Bài mới tự động mở mỗi 7 ngày.`;
 
-  const unlockedCount = computeUnlockedCount(activatedAt);
-  const percent = Math.round((unlockedCount / TOTAL_MODULES) * 100);
+  // 1. Lấy danh sách item bài học động từ config.js
+  const levelItems = getLevelItemList(levelCode);
+  const totalItems = levelItems.length;
+
+  // 2. Tính số lượng bài đã mở khóa dựa trên tổng số item thực tế
+  const unlockedCount = computeUnlockedCount(activatedAt, totalItems);
+  const percent = Math.round((unlockedCount / totalItems) * 100);
   document.getElementById("modules-percent").textContent = percent + "%";
   document.getElementById("modules-progress-fill").style.width = percent + "%";
 
   const list = document.getElementById("module-list");
   list.innerHTML = "";
 
-  for (let m = 1; m <= TOTAL_MODULES; m++) {
-    const isUnlocked = m <= unlockedCount;
+  // 3. Duyệt qua từng item bài học động (Unit, Revision, Exam Practice)
+  levelItems.forEach((item, index) => {
+    const itemIndex = index + 1; // Thứ tự bài từ 1..N
+    const isUnlocked = itemIndex <= unlockedCount;
     const row = document.createElement("div");
     row.className = "module-row rounded-lg px-4 py-3 flex items-center justify-between border border-[var(--border)] " +
       (isUnlocked ? "unlocked" : "locked");
@@ -1147,35 +1153,36 @@ function showModulesScreen(levelCode) {
     if (isUnlocked) {
       row.innerHTML = `
         <div>
-          <p class="font-medium text-sm">Module ${m}</p>
+          <p class="font-medium text-sm">${item.title}</p>
           <p class="text-xs text-[var(--mm-red)]">Đã mở khóa</p>
         </div>
-        <button class="btn-primary text-xs font-medium px-3 py-1.5 rounded-md" data-module="${m}">Xem đáp án</button>
+        <button class="btn-primary text-xs font-medium px-3 py-1.5 rounded-md" data-module="${item.id}">Xem đáp án</button>
       `;
-      row.querySelector("button").addEventListener("click", () => openModuleViewer(levelCode, m));
+      row.querySelector("button").addEventListener("click", () => openModuleViewer(levelCode, item.id));
     } else {
-      const unlockDate = computeUnlockDateForModule(activatedAt, m);
+      const unlockDate = computeUnlockDateForModule(activatedAt, itemIndex);
       row.innerHTML = `
         <div>
-          <p class="font-medium text-sm">Module ${m}</p>
+          <p class="font-medium text-sm">${item.title}</p>
           <p class="text-xs"><span class="text-[var(--mm-red)]">${lockIconSvg(12)}</span>Sẽ tự động mở khóa vào ${formatDateVN(unlockDate)}</p>
         </div>
       `;
     }
     list.appendChild(row);
-  }
+  });
 }
 
 // =====================================================================
-// MODAL XEM ĐÁP ÁN (kèm watermark động)
+// MODAL XEM ĐÁP ÁN (kèm watermark động) - ĐÃ CẬP NHẬT THEO SYLLABUS ĐỘNG
 // =====================================================================
 
-async function openModuleViewer(levelCode, moduleNumber) {
+async function openModuleViewer(levelCode, itemId) {
+  // 1. Truy vấn Supabase theo level_code và module_number (hoặc module_id)
   const { data, error } = await supabaseClient
     .from("module_content")
     .select("title, content")
     .eq("level_code", levelCode)
-    .eq("module_number", moduleNumber)
+    .eq("module_number", itemId) // itemId có thể là "1", "rev_1_5", "exam_1",...
     .maybeSingle();
 
   if (error) {
@@ -1183,13 +1190,20 @@ async function openModuleViewer(levelCode, moduleNumber) {
     return;
   }
 
+  // 2. Lấy thông tin bài học từ config.js để hiển thị tiêu đề chuẩn xác
+  const levelItems = getLevelItemList(levelCode);
+  const currentItem = levelItems.find(item => String(item.id) === String(itemId));
+  const itemTitle = currentItem ? currentItem.title : `Module ${itemId}`;
+
   const lvl = LEVELS.find((l) => l.code === levelCode);
+  
+  // Hiển thị tiêu đề modal (Ví dụ: A2 - Revision: Units 1-6: [Tên bài])
   document.getElementById("viewer-title").textContent =
-    data ? `${lvl.label} - Module ${moduleNumber}: ${data.title || ""}` : `${lvl.label} - Module ${moduleNumber}`;
+    data && data.title ? `${lvl.label} - ${itemTitle}: ${data.title}` : `${lvl.label} - ${itemTitle}`;
 
   const contentEl = document.getElementById("viewer-content");
   if (data && data.content) {
-    contentEl.innerHTML = data.content; // Nội dung do Admin nhập, được tin tưởng (không phải input người dùng)
+    contentEl.innerHTML = data.content;
   } else {
     contentEl.innerHTML = `<p class="text-[var(--lock)]">Nội dung đang được cập nhật, vui lòng quay lại sau.</p>`;
   }
@@ -1198,23 +1212,6 @@ async function openModuleViewer(levelCode, moduleNumber) {
 
   document.getElementById("viewer-modal").classList.remove("hidden");
   document.getElementById("viewer-modal").classList.add("flex");
-}
-
-// Phủ nhiều dòng watermark chứa email người dùng để răn đe việc chụp/quay màn hình
-function renderWatermark() {
-  const layer = document.getElementById("watermark-layer");
-  layer.innerHTML = "";
-  const text = `Bản quyền NXB MM - ${currentUser.email}`;
-  for (let i = 0; i < 24; i++) {
-    const span = document.createElement("span");
-    span.textContent = text;
-    layer.appendChild(span);
-  }
-}
-
-function closeViewerModal() {
-  document.getElementById("viewer-modal").classList.add("hidden");
-  document.getElementById("viewer-modal").classList.remove("flex");
 }
 
 // =====================================================================
